@@ -6,9 +6,11 @@ import { Logger } from '@nestjs/common';
 
 import { AppModule } from './app.module.js';
 import { AppConfigService } from './config/app-config.service.js';
+import { API_PREFIX } from './config/api.constants.js';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+  app.setGlobalPrefix(API_PREFIX);
   const configService = app.get(AppConfigService);
 
   app.use(cookieParser());
@@ -40,7 +42,7 @@ async function bootstrap() {
     .build();
 
   const documentFactory = () => SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('api/docs', app, documentFactory, {
+  SwaggerModule.setup(`${API_PREFIX}/docs`, app, documentFactory, {
     swaggerOptions: { withCredentials: true },
   });
 

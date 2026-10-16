@@ -15,10 +15,11 @@ import { LoginDto } from './dto/login.dto.js';
 import { Auth } from './decorators/auth.decorator.js';
 import ms from 'ms';
 import { AppConfigService } from '../config/app-config.service.js';
+import {API_PREFIX} from "../config/api.constants.js";
 
 const ACCESS_COOKIE = 'access_token';
 const REFRESH_COOKIE = 'refresh_token';
-const REFRESH_PATH = '/auth/refresh';
+const REFRESH_PATH = `/${API_PREFIX}/auth/refresh`;
 
 @Controller('auth')
 export class AuthController {
