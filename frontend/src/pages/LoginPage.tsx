@@ -29,7 +29,7 @@ export default function LoginPage() {
     const { user, loading, login } = useAuth();
 
 // Уже авторизований користувач на сторінці входу не потрібен
-    if (!loading && user) return <Navigate to="/profile" replace />;
+    if (!loading && user) return <Navigate to="/" replace />;
 
     const clearServerError = () => setServerError(null);
 
@@ -46,7 +46,7 @@ export default function LoginPage() {
         <Container className="py-5">
             <Card className="auth-card mx-auto shadow-sm">
                 <Card.Body className="p-4">
-                    <h1 className="h4 mb-4 text-center">Вхід до системи</h1>
+                    <h1 className="h4 mb-4 text-center">🔑 Вхід до системи</h1>
 
                     {serverError && (
                         <Alert variant="danger" className="py-2">

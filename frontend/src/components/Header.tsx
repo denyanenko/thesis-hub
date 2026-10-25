@@ -1,11 +1,11 @@
-import { Link, NavLink } from 'react-router-dom';
+import { Link, NavLink, useNavigate} from 'react-router-dom';
 import Container from 'react-bootstrap/Container';
 import Nav from 'react-bootstrap/Nav';
 import Navbar from 'react-bootstrap/Navbar';
 import { APP_NAME } from '../config';
-import { useNavigate } from 'react-router-dom';
 import Dropdown from 'react-bootstrap/Dropdown';
 import { useAuth } from '../auth/useAuth';
+import logo from '../assets/logo.svg';
 
 // Пункти меню в масиві: щоб додати розділ, достатньо дописати один рядок
 const NAV_LINKS = [{ to: '/', label: 'Головна', end: true }];
@@ -19,11 +19,15 @@ export default function Header() {
         navigate('/');
     };
     return (
-        <Navbar expand="lg" bg="light" className="border-bottom shadow-sm" collapseOnSelect>
+        <Navbar expand="lg" bg="white" className="border-bottom shadow-sm" collapseOnSelect>
             <Container>
                 <Navbar.Brand as={Link} to="/" className="d-flex align-items-center">
-                    <i className="bi bi-mortarboard-fill fs-4 text-primary me-2" />
-                    <span className="fw-bold">{APP_NAME}</span>
+                    <img
+                        src={logo}
+                        alt={APP_NAME}
+                        height="35"
+                        className="d-inline-block align-top"
+                    />
                 </Navbar.Brand>
 
                 <Navbar.Toggle aria-controls="main-nav" />
@@ -38,7 +42,7 @@ export default function Header() {
 
                     <div className="d-flex">
                         {loading ? null : user ? (
-                            <Dropdown align="end">
+                            <Dropdown align={{ lg: 'end' }}>
                                 <Dropdown.Toggle
                                     variant="outline-secondary"
                                     className="d-flex align-items-center"
