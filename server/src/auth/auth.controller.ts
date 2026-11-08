@@ -102,10 +102,9 @@ export class AuthController {
   }
 
   @Auth()
-  @Get('profile')
-  getProfile(@Req() req: any) {
+  @Get('me')
+  getMe(@Req() req: any) {
     return {
-      message: 'Ви маєте доступ до захищеного ресурсу',
       user: req.user,
     };
   }

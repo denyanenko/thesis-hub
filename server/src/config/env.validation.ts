@@ -33,11 +33,32 @@ export class EnvironmentVariablesValidator {
   @IsString()
   JWT_ACCESS_SECRET: string;
 
+  // Окремий секрет для токенів відновлення пароля (відмінний від access-секрету)
+  @IsString()
+  JWT_RESET_SECRET: string;
+
   @IsStringValue()
   JWT_ACCESS_EXPIRES_IN: StringValue = '15m';
 
   @IsStringValue()
   REFRESH_TOKEN_EXPIRES_IN: StringValue = '30d';
+
+  // SMTP (для Gmail: smtp.gmail.com:465 + пароль застосунку)
+  @IsString()
+  SMTP_HOST: string = 'smtp.gmail.com';
+
+  @IsNumber()
+  SMTP_PORT: number = 465;
+
+  @IsString()
+  SMTP_USER: string;
+
+  @IsString()
+  SMTP_PASS: string;
+
+  // Відправник, напр.: "Thesis Hub <no-reply@example.com>"
+  @IsString()
+  MAIL_FROM: string;
 
   // Опціональні змінні для сідінгу
   @IsOptional()

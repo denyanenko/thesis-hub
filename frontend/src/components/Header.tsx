@@ -1,22 +1,29 @@
-import { Link, NavLink, useNavigate} from 'react-router-dom';
+import {Link, NavLink} from 'react-router-dom';
 import Container from 'react-bootstrap/Container';
 import Nav from 'react-bootstrap/Nav';
 import Navbar from 'react-bootstrap/Navbar';
-import { APP_NAME } from '../config';
+import {APP_NAME} from '../config';
 import Dropdown from 'react-bootstrap/Dropdown';
-import { useAuth } from '../auth/useAuth';
+import {useAuth} from '../auth/useAuth';
 import logo from '../assets/logo.svg';
+import {useState} from "react";
+import Spinner from 'react-bootstrap/Spinner';
 
 // Пункти меню в масиві: щоб додати розділ, достатньо дописати один рядок
-const NAV_LINKS = [{ to: '/', label: 'Головна', end: true }];
+const NAV_LINKS = [{to: '/', label: 'Головна', end: true}];
 
 export default function Header() {
-    const { user, loading, logout } = useAuth();
-    const navigate = useNavigate();
+    const {user, loading, logout} = useAuth();
+
+    const [loggingOut, setLoggingOut] = useState(false);
 
     const handleLogout = async () => {
-        await logout();
-        navigate('/');
+        setLoggingOut(true);
+        try {
+            await logout();
+        } finally {
+            setLoggingOut(false);
+        }
     };
     return (
         <Navbar expand="lg" bg="white" className="border-bottom shadow-sm" collapseOnSelect>
@@ -30,7 +37,7 @@ export default function Header() {
                     />
                 </Navbar.Brand>
 
-                <Navbar.Toggle aria-controls="main-nav" />
+                <Navbar.Toggle aria-controls="main-nav"/>
                 <Navbar.Collapse id="main-nav">
                     <Nav className="me-auto mb-2 mb-lg-0">
                         {NAV_LINKS.map((link) => (
@@ -42,20 +49,27 @@ export default function Header() {
 
                     <div className="d-flex">
                         {loading ? null : user ? (
-                            <Dropdown align={{ lg: 'end' }}>
+                            <Dropdown align={{lg: 'end'}}>
                                 <Dropdown.Toggle
                                     variant="outline-secondary"
                                     className="d-flex align-items-center"
                                     aria-label="Меню користувача"
+                                    disabled={loggingOut}
                                 >
-                                    <i className="bi bi-person-circle me-2 fs-5" />
-                                    <span className="d-none d-lg-inline">{user.email}</span>
+                                    {loggingOut ? (
+                                        <Spinner size="sm" className="me-2" aria-hidden="true"/>
+                                    ) : (
+                                        <i className="bi bi-person-circle me-2 fs-5"/>
+                                    )}
+                                    <span className="d-none d-lg-inline">
+                                        {loggingOut ? 'Вихід…' : user.email}
+                                    </span>
                                 </Dropdown.Toggle>
                                 <Dropdown.Menu>
                                     <Dropdown.Item as={Link} to="/profile">
                                         Профіль
                                     </Dropdown.Item>
-                                    <Dropdown.Divider />
+                                    <Dropdown.Divider/>
                                     <Dropdown.Item as="button" onClick={handleLogout}>
                                         Вийти
                                     </Dropdown.Item>

@@ -6,10 +6,12 @@ import { AuthController } from './auth.controller.js';
 import { JwtStrategy } from './strategies/jwt.strategy.js';
 import { JwtAuthGuard } from './guards/jwt-auth.guard.js';
 import { AppConfigService } from '../config/app-config.service.js';
+import { MailModule } from '../mail/mail.module.js';
 
 @Module({
   imports: [
     PassportModule,
+    MailModule,
     JwtModule.registerAsync({
       inject: [AppConfigService],
       useFactory: (config: AppConfigService) => ({

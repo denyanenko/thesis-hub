@@ -7,7 +7,7 @@ import Container from 'react-bootstrap/Container';
 import Form from 'react-bootstrap/Form';
 import InputGroup from 'react-bootstrap/InputGroup';
 import Spinner from 'react-bootstrap/Spinner';
-import { Navigate } from 'react-router-dom';
+import {Navigate, useLocation} from 'react-router-dom';
 import { useAuth } from '../auth/useAuth';
 
 
@@ -28,8 +28,10 @@ export default function LoginPage() {
     const [showPassword, setShowPassword] = useState(false);
     const { user, loading, login } = useAuth();
 
-// Уже авторизований користувач на сторінці входу не потрібен
-    if (!loading && user) return <Navigate to="/" replace />;
+    const location = useLocation();
+    const from = (location.state as { from?: { pathname: string } } | null)?.from?.pathname ?? '/';
+
+    if (!loading && user) return <Navigate to={from} replace />;
 
     const clearServerError = () => setServerError(null);
 

@@ -11,8 +11,7 @@ export interface AuthUser {
     role: UserRole;
 }
 
-interface ProfileResponse {
-    message: string;
+interface MeResponse {
     user: { sub: number; email: string; role: UserRole; iat: number; exp: number };
 }
 
@@ -24,8 +23,8 @@ export async function logout() {
     await http.post('/auth/logout');
 }
 
-export async function fetchProfile(): Promise<AuthUser> {
-    const { data } = await http.get<ProfileResponse>('/auth/profile');
+export async function fetchMe(): Promise<AuthUser> {
+    const { data } = await http.get<MeResponse>('/auth/me');
     const { user } = data;
     return { id: user.sub, email: user.email, role: user.role };
 }

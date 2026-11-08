@@ -27,20 +27,21 @@ async function runSeed() {
       return;
     }
 
-    const email = config.get('INITIAL_ADMIN_EMAIL');
+    const rawEmail = config.get('INITIAL_ADMIN_EMAIL');
     const password = config.get('INITIAL_ADMIN_PASSWORD');
 
     // Заміна getOrThrow: явно викидаємо помилку, якщо обов'язкові змінні для сідінгу відсутні
-    if (!email || !password) {
+    if (!rawEmail || !password) {
       // noinspection ExceptionCaughtLocallyJS
       throw new Error(
         'INITIAL_ADMIN_EMAIL та INITIAL_ADMIN_PASSWORD повинні бути вказані в .env для створення адміністратора.',
       );
     }
+    const email = rawEmail.trim().toLowerCase();
 
     // Заміна другого аргументу (дефолтного значення): використовуємо нативний оператор nullish coalescing (??)
-    const firstName = config.get('INITIAL_ADMIN_FIRST_NAME') ?? 'Денис';
-    const lastName = config.get('INITIAL_ADMIN_LAST_NAME') ?? 'Яненко';
+    const firstName = config.get('INITIAL_ADMIN_FIRST_NAME') ?? 'Адмін';
+    const lastName = config.get('INITIAL_ADMIN_LAST_NAME') ?? 'Адміненко';
 
     const passwordHash = await argon2.hash(password);
 
