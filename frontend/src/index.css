@@ -1,3 +1,37 @@
 .auth-card {
     max-width: 480px;
 }
+
+.alert-dismissible .btn-close {
+    top: 50%;
+    transform: translateY(-50%);
+    padding: 0.5rem 1rem;
+}
+
+.org-tree-container {
+    max-height: 65vh;
+    overflow-y: auto;
+}
+
+.org-tree-row {
+    cursor: pointer;
+    transition: background-color 0.12s ease-in-out;
+}
+
+.org-tree-row:hover {
+    background-color: var(--bs-tertiary-bg);
+}
+
+.org-tree-row-selected {
+    background-color: var(--bs-primary-bg-subtle);
+}
+
+.org-tree-row-selected:hover {
+    background-color: var(--bs-primary-bg-subtle);
+}
+
+.org-tree-chevron {
+    width: 1.1rem;
+    flex-shrink: 0;
+    text-align: center;
+}

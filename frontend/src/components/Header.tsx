@@ -1,19 +1,30 @@
-import {Link, NavLink} from 'react-router-dom';
+import { useState } from 'react';
+import { Link, NavLink } from 'react-router-dom';
 import Container from 'react-bootstrap/Container';
+import Dropdown from 'react-bootstrap/Dropdown';
 import Nav from 'react-bootstrap/Nav';
 import Navbar from 'react-bootstrap/Navbar';
-import {APP_NAME} from '../config';
-import Dropdown from 'react-bootstrap/Dropdown';
-import {useAuth} from '../auth/useAuth';
-import logo from '../assets/logo.svg';
-import {useState} from "react";
 import Spinner from 'react-bootstrap/Spinner';
+import { APP_NAME } from '../config';
+import { useAuth } from '../auth/useAuth';
+import type { UserRole } from '../api/auth';
+import logo from '../assets/logo.svg';
+
+interface NavLinkItem {
+    to: string;
+    label: string;
+    end?: boolean;
+    roles?: UserRole[];
+}
 
 // Пункти меню в масиві: щоб додати розділ, достатньо дописати один рядок
-const NAV_LINKS = [{to: '/', label: 'Головна', end: true}];
+const NAV_LINKS: NavLinkItem[] = [
+    { to: '/', label: 'Головна', end: true },
+    { to: '/admin/org-structure', label: 'Оргструктура', roles: ['admin'] },
+];
 
 export default function Header() {
-    const {user, loading, logout} = useAuth();
+    const { user, loading, logout } = useAuth();
 
     const [loggingOut, setLoggingOut] = useState(false);
 
@@ -25,6 +36,11 @@ export default function Header() {
             setLoggingOut(false);
         }
     };
+
+    const visibleLinks = NAV_LINKS.filter(
+        (link) => !link.roles || (user && link.roles.includes(user.role)),
+    );
+
     return (
         <Navbar expand="lg" bg="white" className="border-bottom shadow-sm" collapseOnSelect>
             <Container>
@@ -37,10 +53,10 @@ export default function Header() {
                     />
                 </Navbar.Brand>
 
-                <Navbar.Toggle aria-controls="main-nav"/>
+                <Navbar.Toggle aria-controls="main-nav" />
                 <Navbar.Collapse id="main-nav">
                     <Nav className="me-auto mb-2 mb-lg-0">
-                        {NAV_LINKS.map((link) => (
+                        {visibleLinks.map((link) => (
                             <Nav.Link key={link.to} as={NavLink} to={link.to} end={link.end}>
                                 {link.label}
                             </Nav.Link>
@@ -49,7 +65,7 @@ export default function Header() {
 
                     <div className="d-flex">
                         {loading ? null : user ? (
-                            <Dropdown align={{lg: 'end'}}>
+                            <Dropdown align={{ lg: 'end' }}>
                                 <Dropdown.Toggle
                                     variant="outline-secondary"
                                     className="d-flex align-items-center"
@@ -57,9 +73,9 @@ export default function Header() {
                                     disabled={loggingOut}
                                 >
                                     {loggingOut ? (
-                                        <Spinner size="sm" className="me-2" aria-hidden="true"/>
+                                        <Spinner size="sm" className="me-2" aria-hidden="true" />
                                     ) : (
-                                        <i className="bi bi-person-circle me-2 fs-5"/>
+                                        <i className="bi bi-person-circle me-2 fs-5" />
                                     )}
                                     <span className="d-none d-lg-inline">
                                         {loggingOut ? 'Вихід…' : user.email}
@@ -69,7 +85,7 @@ export default function Header() {
                                     <Dropdown.Item as={Link} to="/profile">
                                         Профіль
                                     </Dropdown.Item>
-                                    <Dropdown.Divider/>
+                                    <Dropdown.Divider />
                                     <Dropdown.Item as="button" onClick={handleLogout}>
                                         Вийти
                                     </Dropdown.Item>

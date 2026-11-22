@@ -8,6 +8,7 @@ import ConfirmEmailChangePage from './pages/ConfirmEmailChangePage';
 import RevertEmailChangePage from './pages/RevertEmailChangePage';
 import EmergencyPasswordLockPage from './pages/EmergencyPasswordLockPage';
 import ProfilePage from './pages/ProfilePage';
+import OrgStructurePage from './pages/OrgStructurePage';
 import ForbiddenPage from './pages/ForbiddenPage';
 import NotFoundPage from './pages/NotFoundPage';
 import ProtectedRoute from './auth/ProtectedRoute';
@@ -32,10 +33,10 @@ export default function App() {
                     <Route path="profile" element={<ProfilePage />} />
                 </Route>
 
-                {/* Тільки для певних ролей (приклад на майбутнє) */}
-                {/* <Route element={<ProtectedRoute roles={['admin']} />}>
-                    <Route path="admin/users" element={<UsersPage />} />
-                </Route> */}
+                {/* Адміністрування */}
+                <Route element={<ProtectedRoute roles={['admin']} />}>
+                    <Route path="admin/org-structure" element={<OrgStructurePage />} />
+                </Route>
                 <Route path="*" element={<NotFoundPage />} />
             </Route>
         </Routes>
