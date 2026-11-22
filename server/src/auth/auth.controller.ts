@@ -8,14 +8,23 @@ import {
   Get,
   Res,
   UnauthorizedException,
+  UseGuards,
 } from '@nestjs/common';
+import {
+  SkipThrottle,
+  Throttle,
+  ThrottlerGuard,
+  minutes,
+} from '@nestjs/throttler';
 import type { Request, Response } from 'express';
 import { AuthService, TokenPair } from './auth.service.js';
 import { LoginDto } from './dto/login.dto.js';
+import { ForgotPasswordDto } from './dto/forgot-password.dto.js';
+import { ResetPasswordDto } from './dto/reset-password.dto.js';
 import { Auth } from './decorators/auth.decorator.js';
 import ms from 'ms';
 import { AppConfigService } from '../config/app-config.service.js';
-import {API_PREFIX} from "../config/api.constants.js";
+import { API_PREFIX } from '../config/api.constants.js';
 
 const ACCESS_COOKIE = 'access_token';
 const REFRESH_COOKIE = 'refresh_token';
@@ -55,6 +64,11 @@ export class AuthController {
     res.clearCookie(REFRESH_COOKIE, { path: REFRESH_PATH });
   }
 
+  @UseGuards(ThrottlerGuard)
+  @Throttle({
+    account: { ttl: minutes(1), limit: 10 },
+    ip: { ttl: minutes(1), limit: 60 },
+  })
   @Post('login')
   @HttpCode(HttpStatus.OK)
   async login(
@@ -99,6 +113,37 @@ export class AuthController {
     }
     this.clearAuthCookies(res);
     return { message: 'Вихід виконано' };
+  }
+
+  @UseGuards(ThrottlerGuard)
+  @Throttle({
+    account: { ttl: minutes(5), limit: 3 },
+    ip: { ttl: minutes(5), limit: 20 },
+  })
+  @Post('forgot-password')
+  @HttpCode(HttpStatus.OK)
+  async forgotPassword(@Body() dto: ForgotPasswordDto) {
+    await this.authService.forgotPassword(dto);
+    return {
+      message:
+        'Якщо акаунт із таким email існує, на нього надіслано інструкцію для відновлення пароля',
+    };
+  }
+
+  @UseGuards(ThrottlerGuard)
+  @SkipThrottle({ account: true })
+  @Throttle({
+    ip: { ttl: minutes(5), limit: 15 },
+  })
+  @Post('reset-password')
+  @HttpCode(HttpStatus.OK)
+  async resetPassword(
+    @Body() dto: ResetPasswordDto,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    await this.authService.resetPassword(dto);
+    this.clearAuthCookies(res);
+    return { message: 'Пароль успішно змінено. Увійдіть із новим паролем.' };
   }
 
   @Auth()

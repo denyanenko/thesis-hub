@@ -15,8 +15,14 @@ export const http = axios.create({
     withCredentials: true,
 });
 
-// Ці шляхи можуть відповісти 401 «за змістом» (невірний пароль тощо)
-const NO_REFRESH = ['/auth/login', '/auth/refresh', '/auth/logout'];
+// Ці шляхи можуть відповісти 401 «за змістом» (невірний пароль тощо) або не потребують refresh
+const NO_REFRESH = [
+    '/auth/login',
+    '/auth/refresh',
+    '/auth/logout',
+    '/auth/forgot-password',
+    '/auth/reset-password',
+];
 
 let refreshPromise: Promise<unknown> | null = null;
 let onSessionExpired: (() => void) | null = null;

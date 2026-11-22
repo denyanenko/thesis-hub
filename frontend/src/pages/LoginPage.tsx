@@ -7,14 +7,17 @@ import Container from 'react-bootstrap/Container';
 import Form from 'react-bootstrap/Form';
 import InputGroup from 'react-bootstrap/InputGroup';
 import Spinner from 'react-bootstrap/Spinner';
-import {Navigate, useLocation} from 'react-router-dom';
+import { Link, Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../auth/useAuth';
-
-
 
 interface LoginFormValues {
     email: string;
     password: string;
+}
+
+interface LoginLocationState {
+    from?: { pathname: string };
+    passwordResetMessage?: string;
 }
 
 export default function LoginPage() {
@@ -24,12 +27,16 @@ export default function LoginPage() {
         formState: { errors, isSubmitting },
     } = useForm<LoginFormValues>();
 
+    const location = useLocation();
+    const locationState = location.state as LoginLocationState | null;
+    const from = locationState?.from?.pathname ?? '/';
+
     const [serverError, setServerError] = useState<string | null>(null);
+    const [infoMessage, setInfoMessage] = useState<string | null>(
+        () => locationState?.passwordResetMessage ?? null,
+    );
     const [showPassword, setShowPassword] = useState(false);
     const { user, loading, login } = useAuth();
-
-    const location = useLocation();
-    const from = (location.state as { from?: { pathname: string } } | null)?.from?.pathname ?? '/';
 
     if (!loading && user) return <Navigate to={from} replace />;
 
@@ -37,6 +44,7 @@ export default function LoginPage() {
 
     const onSubmit = async (values: LoginFormValues) => {
         setServerError(null);
+        setInfoMessage(null);
         try {
             await login(values.email.trim(), values.password);
         } catch (err) {
@@ -49,6 +57,12 @@ export default function LoginPage() {
             <Card className="auth-card mx-auto shadow-sm">
                 <Card.Body className="p-4">
                     <h1 className="h4 mb-4 text-center">🔑 Вхід до системи</h1>
+
+                    {infoMessage && (
+                        <Alert variant="success" className="py-2">
+                            {infoMessage}
+                        </Alert>
+                    )}
 
                     {serverError && (
                         <Alert variant="danger" className="py-2">
@@ -76,7 +90,12 @@ export default function LoginPage() {
                         </Form.Group>
 
                         <Form.Group className="mb-4" controlId="password">
-                            <Form.Label>Пароль</Form.Label>
+                            <div className="d-flex justify-content-between align-items-center mb-2">
+                                <Form.Label className="mb-0">Пароль</Form.Label>
+                                <Link to="/forgot-password" className="small text-decoration-none">
+                                    Забули пароль?
+                                </Link>
+                            </div>
                             <InputGroup hasValidation>
                                 <Form.Control
                                     type={showPassword ? 'text' : 'password'}
