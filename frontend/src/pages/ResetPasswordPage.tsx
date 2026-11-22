@@ -8,17 +8,26 @@ import Container from 'react-bootstrap/Container';
 import Form from 'react-bootstrap/Form';
 import InputGroup from 'react-bootstrap/InputGroup';
 import Spinner from 'react-bootstrap/Spinner';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { ME_KEY, resetPassword } from '../api/auth';
+import { PROFILE_KEY } from '../api/profile';
 
 interface ResetPasswordFormValues {
     newPassword: string;
     confirmPassword: string;
 }
 
+interface ResetPasswordLocationState {
+    infoMessage?: string;
+}
+
 export default function ResetPasswordPage() {
     const [searchParams] = useSearchParams();
     const token = searchParams.get('token')?.trim() ?? '';
+
+    const location = useLocation();
+    const locationState = location.state as ResetPasswordLocationState | null;
+    const infoMessage = locationState?.infoMessage ?? null;
 
     const {
         register,
@@ -40,9 +49,10 @@ export default function ResetPasswordPage() {
         try {
             const message = await resetPassword(token, values.newPassword);
             queryClient.setQueryData(ME_KEY, null);
+            queryClient.removeQueries({ queryKey: PROFILE_KEY });
             navigate('/login', {
                 replace: true,
-                state: { passwordResetMessage: message },
+                state: { infoMessage: message },
             });
         } catch (err) {
             setServerError(
@@ -73,6 +83,12 @@ export default function ResetPasswordPage() {
                         </>
                     ) : (
                         <>
+                            {infoMessage && (
+                                <Alert variant="warning" className="small py-2">
+                                    {infoMessage}
+                                </Alert>
+                            )}
+
                             {serverError && (
                                 <Alert variant="danger" className="py-2">
                                     <div>{serverError}</div>

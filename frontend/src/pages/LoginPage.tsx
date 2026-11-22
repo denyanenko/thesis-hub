@@ -17,6 +17,7 @@ interface LoginFormValues {
 
 interface LoginLocationState {
     from?: { pathname: string };
+    infoMessage?: string;
     passwordResetMessage?: string;
 }
 
@@ -33,7 +34,7 @@ export default function LoginPage() {
 
     const [serverError, setServerError] = useState<string | null>(null);
     const [infoMessage, setInfoMessage] = useState<string | null>(
-        () => locationState?.passwordResetMessage ?? null,
+        () => locationState?.infoMessage ?? locationState?.passwordResetMessage ?? null,
     );
     const [showPassword, setShowPassword] = useState(false);
     const { user, loading, login } = useAuth();

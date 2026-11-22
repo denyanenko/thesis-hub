@@ -9,13 +9,14 @@ import Row from 'react-bootstrap/Row';
 import Spinner from 'react-bootstrap/Spinner';
 import { useProfile } from '../auth/useProfile';
 import type { UserRole } from '../api/auth';
+import ChangePasswordModal from '../components/ChangePasswordModal';
+import ChangeEmailModal from '../components/ChangeEmailModal';
 
 const ROLE_LABELS: Record<UserRole, string> = {
     student: 'Студент',
     supervisor: 'Науковий керівник',
     admin: 'Адміністратор',
 };
-
 
 /** Один рядок «назва: значення». Порожнє значення показуємо як «—». */
 function InfoRow({ label, value }: { label: string; value?: string | number | null }) {
@@ -42,8 +43,9 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 
 export default function ProfilePage() {
     const { data: profile, isPending, isError, error } = useProfile();
-    const [notice, setNotice] = useState<string | null>(null);
-
+    const [successNotice, setSuccessNotice] = useState<string | null>(null);
+    const [showChangePassword, setShowChangePassword] = useState(false);
+    const [showChangeEmail, setShowChangeEmail] = useState(false);
 
     if (isPending) {
         return (
@@ -118,21 +120,26 @@ export default function ProfilePage() {
                     )}
 
                     <Section title="Зміна даних">
-                        {notice && (
-                            <Alert variant="danger" dismissible onClose={() => setNotice(null)} className="py-2">
-                                {notice}
+                        {successNotice && (
+                            <Alert
+                                variant="success"
+                                dismissible
+                                onClose={() => setSuccessNotice(null)}
+                                className="py-2"
+                            >
+                                {successNotice}
                             </Alert>
                         )}
                         <div className="d-grid gap-2">
                             <Button
                                 variant="outline-primary"
-                                onClick={() => setNotice('Зміну пошти ще не реалізовано')}
+                                onClick={() => setShowChangeEmail(true)}
                             >
                                 Змінити пошту
                             </Button>
                             <Button
                                 variant="outline-warning"
-                                onClick={() => setNotice('Зміну пароля ще не реалізовано')}
+                                onClick={() => setShowChangePassword(true)}
                             >
                                 Змінити пароль
                             </Button>
@@ -140,6 +147,21 @@ export default function ProfilePage() {
                     </Section>
                 </Card.Body>
             </Card>
+
+            <ChangeEmailModal
+                show={showChangeEmail}
+                currentEmail={profile.email}
+                onHide={() => setShowChangeEmail(false)}
+            />
+
+            <ChangePasswordModal
+                show={showChangePassword}
+                onHide={() => setShowChangePassword(false)}
+                onSuccess={(message) => {
+                    setShowChangePassword(false);
+                    setSuccessNotice(message);
+                }}
+            />
         </Container>
     );
 }

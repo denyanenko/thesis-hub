@@ -19,6 +19,11 @@ interface MessageResponse {
     message: string;
 }
 
+interface ResetTokenResponse {
+    resetToken: string;
+    message: string;
+}
+
 export async function login(email: string, password: string) {
     await http.post('/auth/login', { email, password });
 }
@@ -38,6 +43,49 @@ export async function resetPassword(token: string, newPassword: string): Promise
         newPassword,
     });
     return data.message;
+}
+
+export async function changePassword(
+    currentPassword: string,
+    newPassword: string,
+): Promise<string> {
+    const { data } = await http.post<MessageResponse>('/auth/change-password', {
+        currentPassword,
+        newPassword,
+    });
+    return data.message;
+}
+
+export async function emergencyPasswordLock(token: string): Promise<ResetTokenResponse> {
+    const { data } = await http.post<ResetTokenResponse>('/auth/emergency-password-lock', {
+        token,
+    });
+    return data;
+}
+
+export async function requestEmailChange(
+    newEmail: string,
+    currentPassword: string,
+): Promise<string> {
+    const { data } = await http.post<MessageResponse>('/auth/change-email/request', {
+        newEmail,
+        currentPassword,
+    });
+    return data.message;
+}
+
+export async function confirmEmailChange(token: string): Promise<string> {
+    const { data } = await http.post<MessageResponse>('/auth/change-email/confirm', {
+        token,
+    });
+    return data.message;
+}
+
+export async function revertEmailChange(token: string): Promise<ResetTokenResponse> {
+    const { data } = await http.post<ResetTokenResponse>('/auth/change-email/revert', {
+        token,
+    });
+    return data;
 }
 
 export async function fetchMe(): Promise<AuthUser> {

@@ -4,6 +4,9 @@ import HomePage from './pages/HomePage';
 import LoginPage from './pages/LoginPage';
 import ForgotPasswordPage from './pages/ForgotPasswordPage';
 import ResetPasswordPage from './pages/ResetPasswordPage';
+import ConfirmEmailChangePage from './pages/ConfirmEmailChangePage';
+import RevertEmailChangePage from './pages/RevertEmailChangePage';
+import EmergencyPasswordLockPage from './pages/EmergencyPasswordLockPage';
 import ProfilePage from './pages/ProfilePage';
 import ForbiddenPage from './pages/ForbiddenPage';
 import NotFoundPage from './pages/NotFoundPage';
@@ -17,6 +20,12 @@ export default function App() {
                 <Route path="login" element={<LoginPage />} />
                 <Route path="forgot-password" element={<ForgotPasswordPage />} />
                 <Route path="reset-password" element={<ResetPasswordPage />} />
+                <Route path="confirm-email-change" element={<ConfirmEmailChangePage />} />
+                <Route path="revert-email-change" element={<RevertEmailChangePage />} />
+                <Route
+                    path="emergency-password-lock"
+                    element={<EmergencyPasswordLockPage />}
+                />
                 <Route path="forbidden" element={<ForbiddenPage />} />
                 {/* Для будь-якого залогіненого */}
                 <Route element={<ProtectedRoute />}>

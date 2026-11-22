@@ -22,6 +22,9 @@ const NO_REFRESH = [
     '/auth/logout',
     '/auth/forgot-password',
     '/auth/reset-password',
+    '/auth/emergency-password-lock',
+    '/auth/change-email/confirm',
+    '/auth/change-email/revert',
 ];
 
 let refreshPromise: Promise<unknown> | null = null;

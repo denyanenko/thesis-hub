@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ConflictException,
   Logger,
   UnauthorizedException,
 } from '@nestjs/common';
@@ -67,6 +68,9 @@ describe('AuthService', () => {
   let mailMock: {
     sendResetPasswordEmail: ReturnType<typeof vi.fn>;
     sendPasswordChangedEmail: ReturnType<typeof vi.fn>;
+    sendConfirmEmailChangeEmail: ReturnType<typeof vi.fn>;
+    sendEmailChangedEmail: ReturnType<typeof vi.fn>;
+    sendEmailChangeRevertedEmail: ReturnType<typeof vi.fn>;
   };
 
   let existingPasswordHash: string;
@@ -110,6 +114,9 @@ describe('AuthService', () => {
     mailMock = {
       sendResetPasswordEmail: vi.fn().mockResolvedValue(undefined),
       sendPasswordChangedEmail: vi.fn().mockResolvedValue(undefined),
+      sendConfirmEmailChangeEmail: vi.fn().mockResolvedValue(undefined),
+      sendEmailChangedEmail: vi.fn().mockResolvedValue(undefined),
+      sendEmailChangeRevertedEmail: vi.fn().mockResolvedValue(undefined),
     };
 
     service = new AuthService(
@@ -231,7 +238,6 @@ describe('AuthService', () => {
         service.forgotPassword({ email: 'student@uni.ua' }),
       ).resolves.toBeUndefined();
 
-      // Дочекаємося обробки фонового .catch()
       await new Promise((resolve) => setImmediate(resolve));
       expect(errorSpy).toHaveBeenCalledTimes(1);
     });
@@ -261,7 +267,6 @@ describe('AuthService', () => {
       expect(dbMock.mocks.transaction).toHaveBeenCalledTimes(1);
       expect(dbMock.mocks.update).toHaveBeenCalledTimes(2);
 
-      // Перевіряємо, що новий хеш справді відповідає новому паролю
       const firstSetArg = dbMock.mocks.set.mock.calls[0][0] as {
         passwordHash: string;
       };
@@ -269,7 +274,6 @@ describe('AuthService', () => {
         await argon2.verify(firstSetArg.passwordHash, 'new-strong-password'),
       ).toBe(true);
 
-      // Другий update відкликає всі активні refresh-токени
       expect(dbMock.mocks.set.mock.calls[1][0]).toEqual({ isRevoked: true });
       expect(mailMock.sendPasswordChangedEmail).toHaveBeenCalledWith(user.email);
     });
@@ -350,6 +354,230 @@ describe('AuthService', () => {
       ).resolves.toBeUndefined();
       expect(dbMock.mocks.transaction).toHaveBeenCalledTimes(1);
       expect(warnSpy).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('changePassword & emergencyLockPassword', () => {
+    it('змінює пароль, видає нову пару токенів поточному пристрою і шле аварійне посилання', async () => {
+      const user = makeUser();
+      dbMock.mocks.findUser.mockResolvedValue(user);
+
+      const tokens = await service.changePassword(
+        user.id,
+        {
+          currentPassword: 'correct-password',
+          newPassword: 'brand-new-password',
+        },
+        'Vitest',
+        '127.0.0.1',
+      );
+
+      expect(tokens.accessToken).toBeTruthy();
+      expect(tokens.refreshToken).toHaveLength(128);
+      expect(dbMock.mocks.transaction).toHaveBeenCalledTimes(1);
+      expect(dbMock.mocks.insert).toHaveBeenCalledTimes(1);
+
+      const updatedHash = (
+        dbMock.mocks.set.mock.calls[0][0] as { passwordHash: string }
+      ).passwordHash;
+      expect(await argon2.verify(updatedHash, 'brand-new-password')).toBe(true);
+      expect(dbMock.mocks.set.mock.calls[1][0]).toEqual({ isRevoked: true });
+
+      expect(mailMock.sendPasswordChangedEmail).toHaveBeenCalledTimes(1);
+      const [to, emergencyLink] = mailMock.sendPasswordChangedEmail.mock
+        .calls[0] as [string, string];
+      expect(to).toBe(user.email);
+
+      const parsed = new URL(emergencyLink);
+      expect(`${parsed.origin}${parsed.pathname}`).toBe(
+        'http://localhost:5173/emergency-password-lock',
+      );
+      const emergencyToken = parsed.searchParams.get('token')!;
+
+      // Перевіряємо, що аварійне посилання справді спрацьовує, ставить випадковий пароль і видає 15-хв resetToken
+      dbMock.mocks.findUser.mockResolvedValue(
+        makeUser({ passwordHash: updatedHash }),
+      );
+      const { resetToken } =
+        await service.emergencyLockPassword(emergencyToken);
+
+      const lockedHash = (
+        dbMock.mocks.set.mock.calls[2][0] as { passwordHash: string }
+      ).passwordHash;
+      expect(await argon2.verify(lockedHash, 'brand-new-password')).toBe(false);
+
+      const resetPayload = await jwtService.verifyAsync<{
+        sub: number;
+        purpose: string;
+      }>(resetToken, {
+        secret: `${TEST_CONFIG.JWT_RESET_SECRET}:${lockedHash}`,
+      });
+      expect(resetPayload.sub).toBe(user.id);
+      expect(resetPayload.purpose).toBe('password-reset');
+
+      // Повторне використання того ж emergencyToken після блокування відхиляється
+      dbMock.mocks.findUser.mockResolvedValue(
+        makeUser({ passwordHash: lockedHash }),
+      );
+      await expect(
+        service.emergencyLockPassword(emergencyToken),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('відхиляє зміну пароля з 400 при невірному поточному паролі', async () => {
+      dbMock.mocks.findUser.mockResolvedValue(makeUser());
+
+      await expect(
+        service.changePassword(1, {
+          currentPassword: 'wrong-password',
+          newPassword: 'brand-new-password',
+        }),
+      ).rejects.toThrow(BadRequestException);
+      expect(dbMock.mocks.transaction).not.toHaveBeenCalled();
+    });
+
+    it('відхиляє зміну пароля, якщо новий збігається з поточним', async () => {
+      dbMock.mocks.findUser.mockResolvedValue(makeUser());
+
+      await expect(
+        service.changePassword(1, {
+          currentPassword: 'correct-password',
+          newPassword: 'correct-password',
+        }),
+      ).rejects.toThrow(BadRequestException);
+    });
+  });
+
+  describe('requestEmailChange, confirmEmailChange & revertEmailChange', () => {
+    it('проходить повний цикл: запит → підтвердження → відкат (навіть якщо нападник змінив пароль)', async () => {
+      const user = makeUser();
+      // 1) Запит зміни пошти
+      dbMock.mocks.findUser
+        .mockResolvedValueOnce(user) // пошук поточного юзера
+        .mockResolvedValueOnce(undefined); // перевірка зайнятості нового email
+
+      await service.requestEmailChange(user.id, {
+        newEmail: 'new-mail@uni.ua',
+        currentPassword: 'correct-password',
+      });
+
+      expect(mailMock.sendConfirmEmailChangeEmail).toHaveBeenCalledTimes(1);
+      const [confirmTo, confirmLink] = mailMock.sendConfirmEmailChangeEmail.mock
+        .calls[0] as [string, string];
+      expect(confirmTo).toBe('new-mail@uni.ua');
+      const confirmToken = new URL(confirmLink).searchParams.get('token')!;
+
+      // 2) Підтвердження нової пошти
+      dbMock.mocks.findUser
+        .mockResolvedValueOnce(user)
+        .mockResolvedValueOnce(undefined);
+
+      await service.confirmEmailChange(confirmToken);
+
+      expect(dbMock.mocks.set.mock.calls[0][0]).toMatchObject({
+        email: 'new-mail@uni.ua',
+      });
+      expect(dbMock.mocks.set.mock.calls[1][0]).toEqual({ isRevoked: true });
+      expect(mailMock.sendEmailChangedEmail).toHaveBeenCalledTimes(1);
+
+      const [oldEmailTo, changedTo, revertLink] = mailMock.sendEmailChangedEmail
+        .mock.calls[0] as [string, string, string];
+      expect(oldEmailTo).toBe('student@uni.ua');
+      expect(changedTo).toBe('new-mail@uni.ua');
+      const revertToken = new URL(revertLink).searchParams.get('token')!;
+
+      // 3) Відкат на стару пошту: навіть якщо нападник УЖЕ змінив passwordHash!
+      dbMock.mocks.findUser
+        .mockResolvedValueOnce(
+          makeUser({
+            email: 'new-mail@uni.ua',
+            passwordHash: changedPasswordHash,
+          }),
+        )
+        .mockResolvedValueOnce(undefined);
+
+      const { resetToken } = await service.revertEmailChange(revertToken);
+
+      const revertUpdate = dbMock.mocks.set.mock.calls[2][0] as {
+        email: string;
+        passwordHash: string;
+      };
+      expect(revertUpdate.email).toBe('student@uni.ua');
+      expect(await argon2.verify(revertUpdate.passwordHash, 'already-changed')).toBe(
+        false,
+      );
+      expect(mailMock.sendEmailChangeRevertedEmail).toHaveBeenCalledWith(
+        'new-mail@uni.ua',
+      );
+
+      // Виданий resetToken валідний для нового випадкового хешу
+      const resetPayload = await jwtService.verifyAsync<{
+        sub: number;
+        purpose: string;
+      }>(resetToken, {
+        secret: `${TEST_CONFIG.JWT_RESET_SECRET}:${revertUpdate.passwordHash}`,
+      });
+      expect(resetPayload.sub).toBe(user.id);
+      expect(resetPayload.purpose).toBe('password-reset');
+
+      // Повторний відкат тим самим токеном (коли пошта вже повернулась) відхиляється
+      dbMock.mocks.findUser.mockResolvedValueOnce(
+        makeUser({
+          email: 'student@uni.ua',
+          passwordHash: revertUpdate.passwordHash,
+        }),
+      );
+      await expect(service.revertEmailChange(revertToken)).rejects.toThrow(
+        BadRequestException,
+      );
+    });
+
+    it('відхиляє запит зміни пошти, якщо новий email уже зайнятий', async () => {
+      dbMock.mocks.findUser
+        .mockResolvedValueOnce(makeUser())
+        .mockResolvedValueOnce(makeUser({ id: 2, email: 'taken@uni.ua' }));
+
+      await expect(
+        service.requestEmailChange(1, {
+          newEmail: 'taken@uni.ua',
+          currentPassword: 'correct-password',
+        }),
+      ).rejects.toThrow(ConflictException);
+      expect(mailMock.sendConfirmEmailChangeEmail).not.toHaveBeenCalled();
+    });
+
+    it('відхиляє запит зміни пошти при невірному паролі', async () => {
+      dbMock.mocks.findUser.mockResolvedValueOnce(makeUser());
+
+      await expect(
+        service.requestEmailChange(1, {
+          newEmail: 'new-mail@uni.ua',
+          currentPassword: 'wrong-password',
+        }),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('відхиляє підтвердження, якщо email уже змінився раніше', async () => {
+      const user = makeUser();
+      dbMock.mocks.findUser
+        .mockResolvedValueOnce(user)
+        .mockResolvedValueOnce(undefined);
+
+      await service.requestEmailChange(user.id, {
+        newEmail: 'new-mail@uni.ua',
+        currentPassword: 'correct-password',
+      });
+      const confirmLink = mailMock.sendConfirmEmailChangeEmail.mock
+        .calls[0][1] as string;
+      const confirmToken = new URL(confirmLink).searchParams.get('token')!;
+
+      dbMock.mocks.findUser.mockResolvedValueOnce(
+        makeUser({ email: 'other@uni.ua' }),
+      );
+
+      await expect(service.confirmEmailChange(confirmToken)).rejects.toThrow(
+        BadRequestException,
+      );
     });
   });
 
