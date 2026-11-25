@@ -8,6 +8,9 @@ node_modules/
 dist/
 build/
 
+# Seed generated credentials
+seed-output/
+
 # Logs
 *.log
 

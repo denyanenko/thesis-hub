@@ -20,10 +20,20 @@
     "test:cov": "vitest run --coverage",
     "test:debug": "vitest --inspect-brk --no-file-parallelism",
     "test:e2e": "vitest run --config ./vitest.config.e2e.ts",
+    "db:migrate": "nest build && node dist/database/migrate.js",
+    "db:migrate:prod": "node dist/database/migrate.js",
+    "db:migrate:baseline": "nest build && node dist/database/migrate.js --baseline",
+    "db:migrate:status": "nest build && node dist/database/migrate.js --status",
+    "db:check": "nest build && node dist/database/check-schema.js",
+    "db:migrate:check": "nest build && node dist/database/migrate.js && node dist/database/check-schema.js",
     "seed": "nest build && node dist/database/seed.js",
     "seed:prod": "node dist/database/seed.js",
     "seed:kpi": "nest build && node dist/database/seed-kpi.js",
-    "seed:kpi:prod": "node dist/database/seed-kpi.js"
+    "seed:kpi:prod": "node dist/database/seed-kpi.js",
+    "seed:dev:admins": "nest build && node dist/database/seed-dev-admins.js",
+    "seed:dev:supervisors": "nest build && node dist/database/seed-dev-supervisors.js",
+    "seed:dev:users": "nest build && node dist/database/seed-dev-admins.js && node dist/database/seed-dev-supervisors.js",
+    "seed:dev:cleanup": "nest build && node dist/database/seed-dev-cleanup.js"
   },
   "dependencies": {
     "@nestjs/common": "^12.1.2",
