@@ -9,6 +9,22 @@ import {
     type OrgUnitTreeItem,
 } from '../../api/orgUnits';
 
+type TreeViewMode = 'detailed' | 'compact';
+
+const TREE_VIEW_MODE_STORAGE_KEY = 'thesis-hub:org-tree-view-mode';
+
+function getInitialViewMode(): TreeViewMode {
+    try {
+        const stored = window.localStorage.getItem(TREE_VIEW_MODE_STORAGE_KEY);
+        if (stored === 'detailed' || stored === 'compact') {
+            return stored;
+        }
+    } catch {
+        // ignore storage access errors
+    }
+    return 'detailed';
+}
+
 interface OrgTreeProps {
     units: OrgUnitTreeItem[];
     selectedId: number | null;
@@ -26,6 +42,16 @@ export default function OrgTree({
 }: OrgTreeProps) {
     const [search, setSearch] = useState('');
     const [collapsedIds, setCollapsedIds] = useState<Set<number>>(() => new Set());
+    const [viewMode, setViewMode] = useState<TreeViewMode>(getInitialViewMode);
+
+    const handleViewModeChange = (mode: TreeViewMode) => {
+        setViewMode(mode);
+        try {
+            window.localStorage.setItem(TREE_VIEW_MODE_STORAGE_KEY, mode);
+        } catch {
+            // ignore storage access errors
+        }
+    };
 
     const { childrenMap, roots, unitById } = useMemo(() => {
         const byId = new Map<number, OrgUnitTreeItem>();
@@ -93,7 +119,36 @@ export default function OrgTree({
         setCollapsedIds(parentIds);
     };
 
-    const renderNode = (unit: OrgUnitTreeItem, depth: number) => {
+    const renderBadges = (unit: OrgUnitTreeItem, showShortName: boolean) => (
+        <>
+            <Badge
+                bg={ORG_UNIT_TYPE_BADGE_BG[unit.unitType]}
+                pill
+                className="org-tree-badge"
+            >
+                {ORG_UNIT_TYPE_LABELS[unit.unitType]}
+            </Badge>
+            {showShortName && unit.shortName && (
+                <span className="org-tree-shortname text-muted">
+                    {unit.shortName}
+                </span>
+            )}
+            {!unit.isActive && (
+                <Badge bg="secondary" pill className="org-tree-badge">
+                    Неакт.
+                </Badge>
+            )}
+            {!unit.inScope && (
+                <i
+                    className="bi bi-lock-fill text-muted"
+                    style={{ fontSize: '0.72rem' }}
+                    title="Лише перегляд (вище вашого рівня)"
+                />
+            )}
+        </>
+    );
+
+    const renderNode = (unit: OrgUnitTreeItem) => {
         if (visibleIds && !visibleIds.has(unit.id)) return null;
 
         const children = (childrenMap.get(unit.id) ?? []).filter(
@@ -102,16 +157,18 @@ export default function OrgTree({
         const hasChildren = children.length > 0;
         const isCollapsed = !normalizedSearch && collapsedIds.has(unit.id);
         const isSelected = selectedId === unit.id;
+        const fullTitle = unit.shortName
+            ? `${unit.name} (${unit.shortName})`
+            : unit.name;
 
         return (
             <div key={unit.id}>
                 <div
-                    className={`org-tree-row d-flex align-items-center gap-2 py-2 px-2 rounded ${
-                        isSelected ? 'org-tree-row-selected' : ''
-                    } ${!unit.isActive ? 'opacity-50' : ''} ${
-                        !unit.inScope ? 'text-muted' : ''
-                    }`}
-                    style={{ paddingLeft: `${depth * 20 + 8}px` }}
+                    className={`org-tree-row d-flex align-items-start gap-2 px-2 rounded ${
+                        viewMode === 'detailed' ? 'py-2' : 'py-1'
+                    } ${isSelected ? 'org-tree-row-selected' : ''} ${
+                        !unit.isActive ? 'opacity-50' : ''
+                    } ${!unit.inScope ? 'text-muted' : ''}`}
                     role="button"
                     tabIndex={0}
                     onClick={() => onSelect(unit.id)}
@@ -139,36 +196,63 @@ export default function OrgTree({
                             />
                         </button>
                     ) : (
-                        <span className="org-tree-chevron d-inline-block" />
+                        <span className="org-tree-chevron" />
                     )}
 
-                    <div className="flex-grow-1 text-truncate">
-                        <span className="fw-medium">{unit.name}</span>
-                        {unit.shortName && (
-                            <span className="text-muted small ms-1">({unit.shortName})</span>
-                        )}
-                    </div>
+                    {viewMode === 'detailed' ? (
+                        <div className="flex-grow-1 min-w-0">
+                            <div className="org-tree-name fw-medium" title={fullTitle}>
+                                {unit.name}
+                            </div>
+                            <div className="d-flex flex-wrap align-items-center gap-1 mt-1">
+                                {renderBadges(unit, true)}
+                            </div>
+                        </div>
+                    ) : (
+                        <>
+                            <div className="flex-grow-1 min-w-0">
+                                <div className="org-tree-name" title={fullTitle}>
+                                    <span className="fw-medium">{unit.name}</span>
+                                    {unit.shortName && (
+                                        <span className="text-muted small ms-1">
+                                            ({unit.shortName})
+                                        </span>
+                                    )}
+                                </div>
+                                <div className="d-flex d-sm-none flex-wrap align-items-center gap-1 mt-1">
+                                    {renderBadges(unit, false)}
+                                </div>
+                            </div>
 
-                    <div className="d-flex align-items-center gap-1 flex-shrink-0">
-                        {!unit.inScope && (
-                            <i
-                                className="bi bi-lock-fill text-muted small"
-                                title="Лише перегляд (вище вашого рівня)"
-                            />
-                        )}
-                        {!unit.isActive && (
-                            <Badge bg="secondary" pill>
-                                Неакт.
-                            </Badge>
-                        )}
-                        <Badge bg={ORG_UNIT_TYPE_BADGE_BG[unit.unitType]} pill>
-                            {ORG_UNIT_TYPE_LABELS[unit.unitType]}
-                        </Badge>
-                    </div>
+                            <div className="d-none d-sm-flex align-items-center gap-1 flex-shrink-0 pt-1">
+                                {!unit.inScope && (
+                                    <i
+                                        className="bi bi-lock-fill text-muted"
+                                        style={{ fontSize: '0.72rem' }}
+                                        title="Лише перегляд (вище вашого рівня)"
+                                    />
+                                )}
+                                {!unit.isActive && (
+                                    <Badge bg="secondary" pill className="org-tree-badge">
+                                        Неакт.
+                                    </Badge>
+                                )}
+                                <Badge
+                                    bg={ORG_UNIT_TYPE_BADGE_BG[unit.unitType]}
+                                    pill
+                                    className="org-tree-badge"
+                                >
+                                    {ORG_UNIT_TYPE_LABELS[unit.unitType]}
+                                </Badge>
+                            </div>
+                        </>
+                    )}
                 </div>
 
                 {hasChildren && !isCollapsed && (
-                    <div>{children.map((child) => renderNode(child, depth + 1))}</div>
+                    <div className="org-tree-children">
+                        {children.map((child) => renderNode(child))}
+                    </div>
                 )}
             </div>
         );
@@ -209,24 +293,57 @@ export default function OrgTree({
                     onChange={(e) => onIncludeInactiveChange(e.target.checked)}
                 />
 
-                {units.length > 0 && (
-                    <div className="btn-group btn-group-sm">
+                <div className="d-flex align-items-center gap-2">
+                    <div
+                        className="btn-group btn-group-sm"
+                        role="group"
+                        aria-label="Режим відображення дерева"
+                    >
                         <Button
-                            variant="outline-secondary"
-                            onClick={expandAll}
-                            title="Розгорнути все"
+                            variant={
+                                viewMode === 'detailed'
+                                    ? 'secondary'
+                                    : 'outline-secondary'
+                            }
+                            onClick={() => handleViewModeChange('detailed')}
+                            title="Детальний вигляд (назва на всю ширину, тип під назвою)"
+                            aria-pressed={viewMode === 'detailed'}
                         >
-                            <i className="bi bi-arrows-expand" />
+                            <i className="bi bi-view-stacked" />
                         </Button>
                         <Button
-                            variant="outline-secondary"
-                            onClick={collapseAll}
-                            title="Згорнути все"
+                            variant={
+                                viewMode === 'compact'
+                                    ? 'secondary'
+                                    : 'outline-secondary'
+                            }
+                            onClick={() => handleViewModeChange('compact')}
+                            title="Компактний вигляд (тип праворуч)"
+                            aria-pressed={viewMode === 'compact'}
                         >
-                            <i className="bi bi-arrows-collapse" />
+                            <i className="bi bi-list-ul" />
                         </Button>
                     </div>
-                )}
+
+                    {units.length > 0 && (
+                        <div className="btn-group btn-group-sm">
+                            <Button
+                                variant="outline-secondary"
+                                onClick={expandAll}
+                                title="Розгорнути все"
+                            >
+                                <i className="bi bi-arrows-expand" />
+                            </Button>
+                            <Button
+                                variant="outline-secondary"
+                                onClick={collapseAll}
+                                title="Згорнути все"
+                            >
+                                <i className="bi bi-arrows-collapse" />
+                            </Button>
+                        </div>
+                    )}
+                </div>
             </div>
 
             {visibleRoots.length === 0 ? (
@@ -237,7 +354,7 @@ export default function OrgTree({
                 </div>
             ) : (
                 <div className="org-tree-container">
-                    {visibleRoots.map((root) => renderNode(root, 0))}
+                    {visibleRoots.map((root) => renderNode(root))}
                 </div>
             )}
         </div>

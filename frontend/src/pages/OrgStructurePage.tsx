@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import Alert from 'react-bootstrap/Alert';
 import Badge from 'react-bootstrap/Badge';
@@ -44,6 +44,7 @@ const TYPE_ORDER: Record<OrgUnitType, number> = {
 
 export default function OrgStructurePage() {
     const queryClient = useQueryClient();
+    const detailsColRef = useRef<HTMLDivElement | null>(null);
 
     const [activeTab, setActiveTab] = useState<ActiveTab>('tree');
     const [includeInactive, setIncludeInactive] = useState(false);
@@ -84,6 +85,16 @@ export default function OrgStructurePage() {
         }
         return units[0];
     }, [units, selectedId, actor]);
+
+    const handleSelectFromTree = (id: number) => {
+        setSelectedId(id);
+        if (window.innerWidth < 992) {
+            detailsColRef.current?.scrollIntoView({
+                behavior: 'smooth',
+                block: 'start',
+            });
+        }
+    };
 
     const invalidateTree = async () => {
         await queryClient.invalidateQueries({ queryKey: ORG_TREE_KEY });
@@ -260,13 +271,13 @@ export default function OrgStructurePage() {
                                     selectedId={effectiveSelectedUnit?.id ?? null}
                                     includeInactive={includeInactive}
                                     onIncludeInactiveChange={setIncludeInactive}
-                                    onSelect={(id) => setSelectedId(id)}
+                                    onSelect={handleSelectFromTree}
                                 />
                             </Card.Body>
                         </Card>
                     </Col>
 
-                    <Col lg={7}>
+                    <Col lg={7} ref={detailsColRef}>
                         {effectiveSelectedUnit ? (
                             <OrgUnitDetailsPanel
                                 key={`${effectiveSelectedUnit.id}:${effectiveSelectedUnit.unitType}:${effectiveSelectedUnit.allowedChildTypes?.join(',') ?? 'global'}:${rulesVersionKey}`}
