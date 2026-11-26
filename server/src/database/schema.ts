@@ -40,6 +40,18 @@ export const orgUnits = pgTable(
         name: text().notNull(),
         shortName: text('short_name'),
         isActive: boolean('is_active').default(true).notNull(),
+        createdAt: timestamp('created_at', { withTimezone: true, mode: 'string' })
+            .defaultNow()
+            .notNull(),
+        updatedAt: timestamp('updated_at', { withTimezone: true, mode: 'string' })
+            .defaultNow()
+            .notNull(),
+        deactivatedAt: timestamp('deactivated_at', {
+            withTimezone: true,
+            mode: 'string',
+        }),
+        deactivationReason: text('deactivation_reason'),
+        replacedById: bigint('replaced_by_id', { mode: 'number' }),
     },
     (table) => [
         foreignKey({
@@ -47,6 +59,30 @@ export const orgUnits = pgTable(
             foreignColumns: [table.id],
             name: 'org_units_parent_id_fkey',
         }),
+        foreignKey({
+            columns: [table.replacedById],
+            foreignColumns: [table.id],
+            name: 'org_units_replaced_by_id_fkey',
+        }).onDelete('restrict'),
+        index('idx_org_units_replaced_by')
+            .using('btree', table.replacedById.asc().nullsLast().op('int8_ops'))
+            .where(sql`replaced_by_id IS NOT NULL`),
+        check(
+            'chk_org_units_not_self_replaced',
+            sql`replaced_by_id IS NULL OR replaced_by_id <> id`,
+        ),
+        check(
+            'chk_org_units_replaced_inactive',
+            sql`replaced_by_id IS NULL OR is_active = false`,
+        ),
+        check(
+            'chk_org_units_deactivated_at_consistency',
+            sql`is_active = false OR deactivated_at IS NULL`,
+        ),
+        check(
+            'chk_org_units_deactivation_reason_consistency',
+            sql`is_active = false OR deactivation_reason IS NULL`,
+        ),
     ],
 );
 
@@ -59,8 +95,46 @@ export const specialties = pgTable(
         code: text().notNull(),
         name: text().notNull(),
         isActive: boolean('is_active').default(true).notNull(),
+        replacedById: bigint('replaced_by_id', { mode: 'number' }),
+        createdAt: timestamp('created_at', { withTimezone: true, mode: 'string' })
+            .defaultNow()
+            .notNull(),
+        updatedAt: timestamp('updated_at', { withTimezone: true, mode: 'string' })
+            .defaultNow()
+            .notNull(),
+        deactivatedAt: timestamp('deactivated_at', {
+            withTimezone: true,
+            mode: 'string',
+        }),
+        deactivationReason: text('deactivation_reason'),
     },
-    (table) => [unique('specialties_code_key').on(table.code)],
+    (table) => [
+        unique('specialties_code_key').on(table.code),
+        foreignKey({
+            columns: [table.replacedById],
+            foreignColumns: [table.id],
+            name: 'specialties_replaced_by_id_fkey',
+        }).onDelete('restrict'),
+        index('idx_specialties_replaced_by')
+            .using('btree', table.replacedById.asc().nullsLast().op('int8_ops'))
+            .where(sql`replaced_by_id IS NOT NULL`),
+        check(
+            'chk_specialties_not_self_replaced',
+            sql`replaced_by_id IS NULL OR replaced_by_id <> id`,
+        ),
+        check(
+            'chk_specialties_replaced_inactive',
+            sql`replaced_by_id IS NULL OR is_active = false`,
+        ),
+        check(
+            'chk_specialties_deactivated_at_consistency',
+            sql`is_active = false OR deactivated_at IS NULL`,
+        ),
+        check(
+            'chk_specialties_deactivation_reason_consistency',
+            sql`is_active = false OR deactivation_reason IS NULL`,
+        ),
+    ],
 );
 
 export const educationalPrograms = pgTable(
@@ -74,6 +148,18 @@ export const educationalPrograms = pgTable(
         name: text().notNull(),
         degreeLevel: degreeLevel('degree_level').notNull(),
         isActive: boolean('is_active').default(true).notNull(),
+        replacedById: bigint('replaced_by_id', { mode: 'number' }),
+        createdAt: timestamp('created_at', { withTimezone: true, mode: 'string' })
+            .defaultNow()
+            .notNull(),
+        updatedAt: timestamp('updated_at', { withTimezone: true, mode: 'string' })
+            .defaultNow()
+            .notNull(),
+        deactivatedAt: timestamp('deactivated_at', {
+            withTimezone: true,
+            mode: 'string',
+        }),
+        deactivationReason: text('deactivation_reason'),
     },
     (table) => [
         foreignKey({
@@ -86,9 +172,33 @@ export const educationalPrograms = pgTable(
             foreignColumns: [specialties.id],
             name: 'educational_programs_specialty_id_fkey',
         }),
+        foreignKey({
+            columns: [table.replacedById],
+            foreignColumns: [table.id],
+            name: 'educational_programs_replaced_by_id_fkey',
+        }).onDelete('restrict'),
         unique(
             'educational_programs_specialty_id_org_unit_id_name_degree_l_key',
         ).on(table.specialtyId, table.orgUnitId, table.name, table.degreeLevel),
+        index('idx_edu_programs_replaced_by')
+            .using('btree', table.replacedById.asc().nullsLast().op('int8_ops'))
+            .where(sql`replaced_by_id IS NOT NULL`),
+        check(
+            'chk_edu_programs_not_self_replaced',
+            sql`replaced_by_id IS NULL OR replaced_by_id <> id`,
+        ),
+        check(
+            'chk_edu_programs_replaced_inactive',
+            sql`replaced_by_id IS NULL OR is_active = false`,
+        ),
+        check(
+            'chk_edu_programs_deactivated_at_consistency',
+            sql`is_active = false OR deactivated_at IS NULL`,
+        ),
+        check(
+            'chk_edu_programs_deactivation_reason_consistency',
+            sql`is_active = false OR deactivation_reason IS NULL`,
+        ),
     ],
 );
 
@@ -121,6 +231,16 @@ export const groups = pgTable(
         name: text().notNull(),
         enrollmentYear: smallint('enrollment_year'),
         isActive: boolean('is_active').default(true).notNull(),
+        createdAt: timestamp('created_at', { withTimezone: true, mode: 'string' })
+            .defaultNow()
+            .notNull(),
+        updatedAt: timestamp('updated_at', { withTimezone: true, mode: 'string' })
+            .defaultNow()
+            .notNull(),
+        deactivatedAt: timestamp('deactivated_at', {
+            withTimezone: true,
+            mode: 'string',
+        }),
     },
     (table) => [
         foreignKey({
@@ -131,6 +251,10 @@ export const groups = pgTable(
         unique('groups_educational_program_id_name_key').on(
             table.educationalProgramId,
             table.name,
+        ),
+        check(
+            'chk_groups_deactivated_at_consistency',
+            sql`is_active = false OR deactivated_at IS NULL`,
         ),
     ],
 );

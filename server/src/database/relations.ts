@@ -21,6 +21,14 @@ export const orgUnitsRelations = relations(orgUnits, ({ one, many }) => ({
   orgUnits: many(orgUnits, {
     relationName: 'orgUnits_parentId_orgUnits_id',
   }),
+  replacedBy: one(orgUnits, {
+    fields: [orgUnits.replacedById],
+    references: [orgUnits.id],
+    relationName: 'orgUnits_replacedById_orgUnits_id',
+  }),
+  replaces: many(orgUnits, {
+    relationName: 'orgUnits_replacedById_orgUnits_id',
+  }),
   educationalPrograms: many(educationalPrograms),
   supervisors: many(supervisors),
   admins: many(admins),
@@ -38,11 +46,27 @@ export const educationalProgramsRelations = relations(
       fields: [educationalPrograms.specialtyId],
       references: [specialties.id],
     }),
+    replacedBy: one(educationalPrograms, {
+      fields: [educationalPrograms.replacedById],
+      references: [educationalPrograms.id],
+      relationName: 'educationalPrograms_replacedById_educationalPrograms_id',
+    }),
+    replaces: many(educationalPrograms, {
+      relationName: 'educationalPrograms_replacedById_educationalPrograms_id',
+    }),
     groups: many(groups),
   }),
 );
 
-export const specialtiesRelations = relations(specialties, ({ many }) => ({
+export const specialtiesRelations = relations(specialties, ({ one, many }) => ({
+  replacedBy: one(specialties, {
+    fields: [specialties.replacedById],
+    references: [specialties.id],
+    relationName: 'specialties_replacedById_specialties_id',
+  }),
+  replaces: many(specialties, {
+    relationName: 'specialties_replacedById_specialties_id',
+  }),
   educationalPrograms: many(educationalPrograms),
 }));
 
