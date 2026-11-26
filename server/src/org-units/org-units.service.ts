@@ -131,6 +131,7 @@ export class OrgUnitsService {
         .select({
           orgUnitId: educationalPrograms.orgUnitId,
           total: sql<number>`count(*)::int`,
+          active: sql<number>`count(*) filter (where ${educationalPrograms.isActive})::int`,
         })
         .from(educationalPrograms)
         .where(inArray(educationalPrograms.orgUnitId, unitIds))
@@ -170,9 +171,12 @@ export class OrgUnitsService {
       }
     }
 
-    const programsCountMap = new Map<number, number>();
+    const programsCountMap = new Map<number, { total: number; active: number }>();
     for (const row of programsCountsRows) {
-      programsCountMap.set(row.orgUnitId, Number(row.total));
+      programsCountMap.set(row.orgUnitId, {
+        total: Number(row.total),
+        active: Number(row.active),
+      });
     }
 
     const supervisorsCountMap = new Map<number, number>();
@@ -203,10 +207,15 @@ export class OrgUnitsService {
           total: 0,
           active: 0,
         };
+        const programStats = programsCountMap.get(unit.id) ?? {
+          total: 0,
+          active: 0,
+        };
         const counts: OrgUnitCounts = {
           children: childStats.total,
           activeChildren: childStats.active,
-          programs: programsCountMap.get(unit.id) ?? 0,
+          programs: programStats.total,
+          activePrograms: programStats.active,
           supervisors: supervisorsCountMap.get(unit.id) ?? 0,
           admins: adminsCountMap.get(unit.id) ?? 0,
         };

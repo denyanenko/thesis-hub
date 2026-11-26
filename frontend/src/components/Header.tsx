@@ -21,6 +21,8 @@ interface NavLinkItem {
 const NAV_LINKS: NavLinkItem[] = [
     { to: '/', label: 'Головна', end: true },
     { to: '/admin/org-structure', label: 'Оргструктура', roles: ['admin'] },
+    { to: '/admin/specialties', label: 'Спеціальності', roles: ['admin'] },
+    { to: '/admin/educational-programs', label: 'Освітні програми', roles: ['admin'] },
 ];
 
 export default function Header() {

@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import Badge from 'react-bootstrap/Badge';
 import Button from 'react-bootstrap/Button';
 import Form from 'react-bootstrap/Form';
@@ -43,6 +43,13 @@ export default function OrgTree({
     const [search, setSearch] = useState('');
     const [collapsedIds, setCollapsedIds] = useState<Set<number>>(() => new Set());
     const [viewMode, setViewMode] = useState<TreeViewMode>(getInitialViewMode);
+    const selectedRowRef = useRef<HTMLDivElement | null>(null);
+
+    useEffect(() => {
+        if (selectedId !== null) {
+            selectedRowRef.current?.scrollIntoView({ block: 'nearest' });
+        }
+    }, [selectedId]);
 
     const handleViewModeChange = (mode: TreeViewMode) => {
         setViewMode(mode);
@@ -164,6 +171,7 @@ export default function OrgTree({
         return (
             <div key={unit.id}>
                 <div
+                    ref={isSelected ? selectedRowRef : undefined}
                     className={`org-tree-row d-flex align-items-start gap-2 px-2 rounded ${
                         viewMode === 'detailed' ? 'py-2' : 'py-1'
                     } ${isSelected ? 'org-tree-row-selected' : ''} ${

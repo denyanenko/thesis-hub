@@ -8,6 +8,8 @@ import { AppConfigModule } from './config/config.module.js';
 import { MailModule } from './mail/mail.module.js';
 import { ProfileModule } from './profile/profile.module.js';
 import { OrgUnitsModule } from './org-units/org-units.module.js';
+import { SpecialtiesModule } from './specialties/specialties.module.js';
+import { EducationalProgramsModule } from './educational-programs/educational-programs.module.js';
 
 @Module({
   imports: [
@@ -47,6 +49,8 @@ import { OrgUnitsModule } from './org-units/org-units.module.js';
     AuthModule,
     ProfileModule,
     OrgUnitsModule,
+    SpecialtiesModule,
+    EducationalProgramsModule,
     MailModule,
   ],
   controllers: [AppController],

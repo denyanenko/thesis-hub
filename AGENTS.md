@@ -16,9 +16,11 @@ thesis-hub/
 │   │   ├── auth/                   # JWT у HttpOnly cookies, refresh rotation, RBAC (@Auth, @Roles)
 │   │   ├── config/                 # Валідація .env (AppConfigService, API_PREFIX = 'api')
 │   │   ├── database/               # Drizzle schema.ts, relations.ts, migrate.ts, check-schema.ts, сіди
+│   │   ├── educational-programs/   # Освітні програми (CRUD, scope кафедр, заміна/перейменування)
 │   │   ├── mail/                   # Nodemailer + шаблони листів
 │   │   ├── org-units/              # Дерево оргструктури, OrgScopeService, правила ієрархії
-│   │   └── profile/                # Профіль поточного користувача
+│   │   ├── profile/                # Профіль поточного користувача
+│   │   └── specialties/            # Довідник спеціальностей (CRUD, перекодування/заміна, правонаступництво)
 │   └── seed-output/                # Згенеровані dev-облікові дані (.gitignore — ніколи не комітити)
 ├── frontend/                       # Frontend: React 19 + Vite + React-Bootstrap + React Query
 │   └── src/
@@ -42,7 +44,7 @@ thesis-hub/
     - `pnpm build` — `nest build`;
     - `pnpm test` — `vitest run` (`pnpm test:e2e` для e2e);
     - `pnpm db:migrate` / `pnpm db:migrate:status` / `pnpm db:migrate:baseline` / `pnpm db:check` / `pnpm db:migrate:check`;
-    - `pnpm seed` (супер-адмін), `pnpm seed:kpi` (структура КПІ), `pnpm seed:dev:admins`, `pnpm seed:dev:supervisors`, `pnpm seed:dev:users`, `pnpm seed:dev:cleanup`.
+    - `pnpm seed` (супер-адмін), `pnpm seed:kpi` (структура КПІ), `pnpm seed:specialties` (класифікатор спеціальностей МОН 2024), `pnpm seed:dev:admins`, `pnpm seed:dev:supervisors`, `pnpm seed:dev:users`, `pnpm seed:dev:programs`, `pnpm seed:dev:cleanup`.
   - `frontend/`:
     - `pnpm dev` — Vite dev-сервер;
     - `pnpm lint` — `eslint .`;
@@ -73,7 +75,7 @@ thesis-hub/
 
 ### Правила щодо сідів
 
-- Продакшн-сіди (`seed.ts`, `seed-kpi.ts`) мають бути ідемпотентними.
+- Продакшн-сіди (`seed.ts`, `seed-kpi.ts`, `seed-specialties.ts`) мають бути ідемпотентними.
 - Dev-сіди (`seed-dev-*.ts`) **обов'язково** перевіряють `NODE_ENV === 'development'` (через `assertDevelopmentEnv()`), не захаращують `.env` зайвими змінними (налаштування задаються константами в коді) та пишуть згенеровані облікові дані лише в `server/seed-output/` (ігнорується Git).
 
 ---
@@ -89,7 +91,7 @@ thesis-hub/
   - Сесія працює через `HttpOnly` cookies (`access_token`, `refresh_token`) із ротацією refresh-токенів.
   - Захист ендпоїнтів — через `@Auth(...)` / `JwtAuthGuard` + `RolesGuard` (`@Roles(...)`).
   - Авторизація адміністраторів у межах дерева підрозділів — через `OrgScopeService` (`org_unit_id IS NULL` — головний адміністратор / superadmin; інакше — адміністратор конкретного підрозділу та його піддерева).
-- **Помилки БД:** коректно мапити коди помилок PostgreSQL (`23505` unique violation, `23503` FK violation, `P0001` винятки тригерів) у зрозумілі HTTP-винятки NestJS (`ConflictException`, `BadRequestException` тощо) з повідомленнями українською.
+- **Помилки БД:** коректно мапити коди помилок PostgreSQL (`23505` unique violation, `23503` FK violation, `23514` CHECK violation, `P0001` винятки тригерів) у зрозумілі HTTP-винятки NestJS (`ConflictException`, `BadRequestException` тощо) з повідомленнями українською.
 - **Тести:** бізнес-логіку сервісів покривати unit-тестами у `*.spec.ts` (Vitest) поруч із сервісом.
 
 ---
@@ -113,7 +115,8 @@ thesis-hub/
 - **Мова:** увесь UI, повідомлення про помилки (бекенд і фронтенд), email-шаблони, коментарі в коді та тестові дані — **виключно літературною українською мовою** (без суржику й русизмів).
 - **Доменні інваріанти ЗВО:**
   - Наукові керівники (`supervisors`) та освітні програми (`educational_programs`) прив'язуються виключно до кафедр (`org_units.unit_type = 'department'`, що контролюється тригерами БД).
-- **Цілісність історичних даних:** зміни у довідниках (перекодування спеціальностей, перейменування ОП чи підрозділів) не мають заднім числом переписувати дані минулих наборів і випускників — застарілі записи деактивуються (`is_active = false`) зі зв'язком на правонаступника, а зафіксовані архівні документи зберігають незмінний знімок атрибутів.
+  - Нові (та активні) освітні програми можуть прив'язуватися лише до активної спеціальності (`trg_edu_program_active_specialty`).
+- **Цілісність історичних даних:** зміни у довідниках (перекодування спеціальностей, перейменування ОП чи підрозділів) не мають заднім числом переписувати дані минулих наборів і випускників — застарілі записи деактивуються (`is_active = false`, автоматичний `deactivated_at` та опціональний `deactivation_reason`) зі зв'язком `replaced_by_id` на активного правонаступника (із тригерним захистом від циклів), `created_at`/`updated_at` підтримуються тригерами БД (`touch_updated_at`), а зафіксовані архівні документи зберігають незмінний знімок атрибутів.
 
 ---
 

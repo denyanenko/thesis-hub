@@ -9,6 +9,8 @@ import RevertEmailChangePage from './pages/RevertEmailChangePage';
 import EmergencyPasswordLockPage from './pages/EmergencyPasswordLockPage';
 import ProfilePage from './pages/ProfilePage';
 import OrgStructurePage from './pages/OrgStructurePage';
+import SpecialtiesPage from './pages/SpecialtiesPage';
+import EducationalProgramsPage from './pages/EducationalProgramsPage';
 import ForbiddenPage from './pages/ForbiddenPage';
 import NotFoundPage from './pages/NotFoundPage';
 import ProtectedRoute from './auth/ProtectedRoute';
@@ -36,6 +38,11 @@ export default function App() {
                 {/* Адміністрування */}
                 <Route element={<ProtectedRoute roles={['admin']} />}>
                     <Route path="admin/org-structure" element={<OrgStructurePage />} />
+                    <Route path="admin/specialties" element={<SpecialtiesPage />} />
+                    <Route
+                        path="admin/educational-programs"
+                        element={<EducationalProgramsPage />}
+                    />
                 </Route>
                 <Route path="*" element={<NotFoundPage />} />
             </Route>

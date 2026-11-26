@@ -35,6 +35,7 @@ export interface OrgUnitCounts {
     children: number;
     activeChildren: number;
     programs: number;
+    activePrograms: number;
     supervisors: number;
     admins: number;
 }

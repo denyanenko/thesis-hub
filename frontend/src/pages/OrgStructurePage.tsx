@@ -1,4 +1,5 @@
-import { useMemo, useRef, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import Alert from 'react-bootstrap/Alert';
 import Badge from 'react-bootstrap/Badge';
@@ -42,18 +43,60 @@ const TYPE_ORDER: Record<OrgUnitType, number> = {
     department: 3,
 };
 
+function parsePositiveInt(value: string | null): number | null {
+    if (!value) return null;
+    const parsed = Number(value);
+    return Number.isInteger(parsed) && parsed > 0 ? parsed : null;
+}
+
 export default function OrgStructurePage() {
     const queryClient = useQueryClient();
     const detailsColRef = useRef<HTMLDivElement | null>(null);
+    const [searchParams, setSearchParams] = useSearchParams();
 
     const [activeTab, setActiveTab] = useState<ActiveTab>('tree');
-    const [includeInactive, setIncludeInactive] = useState(false);
-    const [selectedId, setSelectedId] = useState<number | null>(null);
     const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
     const [formModal, setFormModal] = useState<FormModalState>(null);
     const [moveUnit, setMoveUnit] = useState<OrgUnitTreeItem | null>(null);
     const [confirmModal, setConfirmModal] = useState<ConfirmModalState>(null);
+
+    const selectedId = parsePositiveInt(searchParams.get('unitId'));
+    const includeInactive = searchParams.get('includeInactive') === '1';
+
+    const updateSearchParams = useCallback(
+        (updater: (next: URLSearchParams) => void) => {
+            setSearchParams(
+                (prev) => {
+                    const next = new URLSearchParams(prev);
+                    updater(next);
+                    return next;
+                },
+                { replace: true },
+            );
+        },
+        [setSearchParams],
+    );
+
+    const setSelectedUnitId = useCallback(
+        (id: number | null) => {
+            updateSearchParams((next) => {
+                if (id === null) next.delete('unitId');
+                else next.set('unitId', String(id));
+            });
+        },
+        [updateSearchParams],
+    );
+
+    const setIncludeInactive = useCallback(
+        (value: boolean) => {
+            updateSearchParams((next) => {
+                if (value) next.set('includeInactive', '1');
+                else next.delete('includeInactive');
+            });
+        },
+        [updateSearchParams],
+    );
 
     const { data, isLoading, isError, error, refetch } = useQuery({
         queryKey: [...ORG_TREE_KEY, includeInactive],
@@ -87,7 +130,7 @@ export default function OrgStructurePage() {
     }, [units, selectedId, actor]);
 
     const handleSelectFromTree = (id: number) => {
-        setSelectedId(id);
+        setSelectedUnitId(id);
         if (window.innerWidth < 992) {
             detailsColRef.current?.scrollIntoView({
                 behavior: 'smooth',
@@ -102,7 +145,7 @@ export default function OrgStructurePage() {
 
     const handleFormSaved = async (savedId: number, message: string) => {
         await invalidateTree();
-        setSelectedId(savedId);
+        setSelectedUnitId(savedId);
         setSuccessMessage(message);
     };
 
@@ -113,7 +156,7 @@ export default function OrgStructurePage() {
 
     const handleConfirmedAction = async (message: string, deletedId?: number) => {
         if (deletedId !== undefined && selectedId === deletedId) {
-            setSelectedId(null);
+            setSelectedUnitId(null);
         }
         await invalidateTree();
         setSuccessMessage(message);
@@ -284,7 +327,7 @@ export default function OrgStructurePage() {
                                 unit={effectiveSelectedUnit}
                                 allUnits={units}
                                 hierarchyRules={hierarchyRules}
-                                onSelectUnit={(id) => setSelectedId(id)}
+                                onSelectUnit={setSelectedUnitId}
                                 onCreateChild={(parent) =>
                                     setFormModal({ mode: 'create', parentUnit: parent })
                                 }

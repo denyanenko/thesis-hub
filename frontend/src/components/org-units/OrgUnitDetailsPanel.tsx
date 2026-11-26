@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import Alert from 'react-bootstrap/Alert';
 import Badge from 'react-bootstrap/Badge';
 import Breadcrumb from 'react-bootstrap/Breadcrumb';
@@ -89,6 +90,65 @@ export default function OrgUnitDetailsPanel({
         unit.parentId !== null
             ? allUnits.find((u) => u.id === unit.parentId) ?? null
             : null;
+
+    const programsTile = useMemo(() => {
+        if (unit.unitType === 'department') {
+            const count = unit.counts.activePrograms;
+            const to = unit.inScope
+                ? `/admin/educational-programs?departmentId=${unit.id}`
+                : null;
+            return {
+                count,
+                to,
+                title: to
+                    ? count > 0
+                        ? `Перейти до активних освітніх програм кафедри (${count})`
+                        : 'Перейти до освітніх програм кафедри (поки немає, можна створити)'
+                    : 'Активні освітні програми кафедри',
+            };
+        }
+
+        const childrenByParent = new Map<number, OrgUnitTreeItem[]>();
+        for (const u of allUnits) {
+            if (u.parentId !== null) {
+                const list = childrenByParent.get(u.parentId) ?? [];
+                list.push(u);
+                childrenByParent.set(u.parentId, list);
+            }
+        }
+
+        let subtreePrograms = unit.counts.activePrograms;
+        let descendantDepartments = 0;
+        const queue: number[] = [unit.id];
+        const visited = new Set<number>([unit.id]);
+
+        while (queue.length > 0) {
+            const currentId = queue.shift()!;
+            const children = childrenByParent.get(currentId) ?? [];
+            for (const child of children) {
+                if (visited.has(child.id)) continue;
+                visited.add(child.id);
+                if (child.unitType === 'department' && child.inScope) {
+                    descendantDepartments += 1;
+                    subtreePrograms += child.counts.activePrograms;
+                }
+                queue.push(child.id);
+            }
+        }
+
+        const to =
+            unit.inScope && descendantDepartments > 0
+                ? `/admin/educational-programs?unitId=${unit.id}`
+                : null;
+
+        return {
+            count: subtreePrograms,
+            to,
+            title: to
+                ? `Перейти до активних освітніх програм підпорядкованих кафедр (${subtreePrograms})`
+                : 'Освітні програми привʼязуються до кафедр',
+        };
+    }, [allUnits, unit]);
 
     const rulesDirty = useMemo(() => {
         if (useGlobal) return unit.allowedChildTypes !== null;
@@ -214,7 +274,7 @@ export default function OrgUnitDetailsPanel({
 
                     <Row className="g-2 mb-3">
                         <Col xs={6} sm={3}>
-                            <div className="border rounded p-2 text-center bg-light">
+                            <div className="border rounded p-2 text-center bg-light h-100">
                                 <div className="fw-semibold">{unit.counts.children}</div>
                                 <div className="text-muted" style={{ fontSize: '0.75rem' }}>
                                     Дочірні ({unit.counts.activeChildren} акт.)
@@ -222,15 +282,38 @@ export default function OrgUnitDetailsPanel({
                             </div>
                         </Col>
                         <Col xs={6} sm={3}>
-                            <div className="border rounded p-2 text-center bg-light">
-                                <div className="fw-semibold">{unit.counts.programs}</div>
-                                <div className="text-muted" style={{ fontSize: '0.75rem' }}>
-                                    Освітні програми
+                            {programsTile.to ? (
+                                <Link
+                                    to={programsTile.to}
+                                    className="org-stat-link border rounded p-2 text-center bg-light h-100"
+                                    title={programsTile.title}
+                                >
+                                    <div className="fw-semibold text-primary">
+                                        {programsTile.count}
+                                        <i
+                                            className="bi bi-arrow-up-right ms-1"
+                                            style={{ fontSize: '0.7rem' }}
+                                            aria-hidden="true"
+                                        />
+                                    </div>
+                                    <div className="text-muted" style={{ fontSize: '0.75rem' }}>
+                                        Освітні програми
+                                    </div>
+                                </Link>
+                            ) : (
+                                <div
+                                    className="border rounded p-2 text-center bg-light h-100"
+                                    title={programsTile.title}
+                                >
+                                    <div className="fw-semibold">{programsTile.count}</div>
+                                    <div className="text-muted" style={{ fontSize: '0.75rem' }}>
+                                        Освітні програми
+                                    </div>
                                 </div>
-                            </div>
+                            )}
                         </Col>
                         <Col xs={6} sm={3}>
-                            <div className="border rounded p-2 text-center bg-light">
+                            <div className="border rounded p-2 text-center bg-light h-100">
                                 <div className="fw-semibold">{unit.counts.supervisors}</div>
                                 <div className="text-muted" style={{ fontSize: '0.75rem' }}>
                                     Керівники
@@ -238,7 +321,7 @@ export default function OrgUnitDetailsPanel({
                             </div>
                         </Col>
                         <Col xs={6} sm={3}>
-                            <div className="border rounded p-2 text-center bg-light">
+                            <div className="border rounded p-2 text-center bg-light h-100">
                                 <div className="fw-semibold">{unit.counts.admins}</div>
                                 <div className="text-muted" style={{ fontSize: '0.75rem' }}>
                                     Адміни
