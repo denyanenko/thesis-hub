@@ -26,14 +26,16 @@ async function runDevCleanup() {
 
     const adminCount = deleted.filter((u) => u.role === 'admin').length;
     const supervisorCount = deleted.filter((u) => u.role === 'supervisor').length;
+    const studentCount = deleted.filter((u) => u.role === 'student').length;
 
     await Promise.all([
       rm(path.join(config.outputDir, 'dev-admins.md'), { force: true }),
       rm(path.join(config.outputDir, 'dev-supervisors.md'), { force: true }),
+      rm(path.join(config.outputDir, 'dev-students.md'), { force: true }),
     ]);
 
     console.log(
-      `✅ [DEV] Видалено користувачів: ${deleted.length} (адмінів: ${adminCount}, керівників: ${supervisorCount}).`,
+      `✅ [DEV] Видалено користувачів: ${deleted.length} (адмінів: ${adminCount}, керівників: ${supervisorCount}, студентів: ${studentCount}).`,
     );
   } catch (error) {
     console.error('❌ Помилка під час очищення dev-користувачів:', error);
