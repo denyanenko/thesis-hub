@@ -746,6 +746,25 @@ export class AuthService implements OnModuleInit {
     return { resetToken };
   }
 
+  /**
+   * Створює нову сесію та видає пару access/refresh токенів (використовується, зокрема,
+   * після прийняття запрошення користувачем для миттєвого входу в систему).
+   */
+  async issueSessionTokens(
+    payload: JwtPayload,
+    userAgent?: string,
+    ipAddress?: string,
+  ): Promise<TokenPair> {
+    const sessionId = crypto.randomUUID();
+    const { tokenId: _tokenId, ...tokens } = await this.generateTokens(
+      payload,
+      sessionId,
+      userAgent,
+      ipAddress,
+    );
+    return tokens;
+  }
+
   private async generateTokens(
     payload: JwtPayload,
     sessionId: string,

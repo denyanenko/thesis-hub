@@ -11,6 +11,7 @@ import { OrgUnitsModule } from './org-units/org-units.module.js';
 import { SpecialtiesModule } from './specialties/specialties.module.js';
 import { EducationalProgramsModule } from './educational-programs/educational-programs.module.js';
 import { GroupsModule } from './groups/groups.module.js';
+import { InvitationsModule } from './invitations/invitations.module.js';
 
 @Module({
   imports: [
@@ -53,6 +54,7 @@ import { GroupsModule } from './groups/groups.module.js';
     SpecialtiesModule,
     EducationalProgramsModule,
     GroupsModule,
+    InvitationsModule,
     MailModule,
   ],
   controllers: [AppController],

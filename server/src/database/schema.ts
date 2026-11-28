@@ -13,6 +13,7 @@ import {
     inet,
     primaryKey,
     pgEnum,
+    uniqueIndex,
 } from 'drizzle-orm/pg-core';
 import { sql } from 'drizzle-orm';
 
@@ -28,6 +29,11 @@ export const orgUnitType = pgEnum('org_unit_type', [
     'department',
 ]);
 export const userRole = pgEnum('user_role', ['student', 'supervisor', 'admin']);
+export const invitationEmailStatus = pgEnum('invitation_email_status', [
+    'pending',
+    'sent',
+    'failed',
+]);
 
 export const orgUnits = pgTable(
     'org_units',
@@ -412,5 +418,130 @@ export const orgUnitAllowedChildren = pgTable(
             columns: [table.orgUnitId, table.childType],
             name: 'org_unit_allowed_children_pkey',
         }),
+    ],
+);
+
+export const userInvitations = pgTable(
+    'user_invitations',
+    {
+        id: bigint({ mode: 'number' })
+            .primaryKey()
+            .generatedAlwaysAsIdentity({ name: 'user_invitations_id_seq' }),
+        email: text().notNull(),
+        role: userRole().notNull(),
+        firstName: text('first_name').notNull(),
+        lastName: text('last_name').notNull(),
+        patronymic: text(),
+        studentNumber: text('student_number'),
+        groupId: bigint('group_id', { mode: 'number' }),
+        orgUnitId: bigint('org_unit_id', { mode: 'number' }),
+        position: text(),
+        academicDegree: text('academic_degree'),
+        academicTitle: text('academic_title'),
+        tokenHash: text('token_hash').notNull(),
+        expiresAt: timestamp('expires_at', {
+            withTimezone: true,
+            mode: 'string',
+        }).notNull(),
+        invitedByUserId: bigint('invited_by_user_id', { mode: 'number' }),
+        acceptedAt: timestamp('accepted_at', {
+            withTimezone: true,
+            mode: 'string',
+        }),
+        acceptedUserId: bigint('accepted_user_id', { mode: 'number' }),
+        revokedAt: timestamp('revoked_at', {
+            withTimezone: true,
+            mode: 'string',
+        }),
+        emailStatus: invitationEmailStatus('email_status')
+            .default('pending')
+            .notNull(),
+        emailError: text('email_error'),
+        emailSentAt: timestamp('email_sent_at', {
+            withTimezone: true,
+            mode: 'string',
+        }),
+        createdAt: timestamp('created_at', { withTimezone: true, mode: 'string' })
+            .defaultNow()
+            .notNull(),
+        updatedAt: timestamp('updated_at', { withTimezone: true, mode: 'string' })
+            .defaultNow()
+            .notNull(),
+    },
+    (table) => [
+        foreignKey({
+            columns: [table.groupId],
+            foreignColumns: [groups.id],
+            name: 'user_invitations_group_id_fkey',
+        }),
+        foreignKey({
+            columns: [table.orgUnitId],
+            foreignColumns: [orgUnits.id],
+            name: 'user_invitations_org_unit_id_fkey',
+        }),
+        foreignKey({
+            columns: [table.invitedByUserId],
+            foreignColumns: [users.id],
+            name: 'user_invitations_invited_by_user_id_fkey',
+        }).onDelete('set null'),
+        foreignKey({
+            columns: [table.acceptedUserId],
+            foreignColumns: [users.id],
+            name: 'user_invitations_accepted_user_id_fkey',
+        }).onDelete('set null'),
+        unique('user_invitations_token_hash_key').on(table.tokenHash),
+        uniqueIndex('uq_user_invitations_active_email')
+            .on(sql`lower(${table.email})`)
+            .where(sql`accepted_at IS NULL AND revoked_at IS NULL`),
+        uniqueIndex('uq_user_invitations_active_student_number')
+            .on(table.studentNumber)
+            .where(
+                sql`student_number IS NOT NULL AND accepted_at IS NULL AND revoked_at IS NULL`,
+            ),
+        index('idx_user_invitations_role_created').on(
+            table.role,
+            table.createdAt,
+        ),
+        index('idx_user_invitations_org_unit')
+            .on(table.orgUnitId)
+            .where(sql`org_unit_id IS NOT NULL`),
+        index('idx_user_invitations_group')
+            .on(table.groupId)
+            .where(sql`group_id IS NOT NULL`),
+        check(
+            'chk_user_invitations_expires_after_created',
+            sql`expires_at > created_at`,
+        ),
+        check(
+            'chk_user_invitations_not_both_accepted_and_revoked',
+            sql`NOT (accepted_at IS NOT NULL AND revoked_at IS NOT NULL)`,
+        ),
+        check(
+            'chk_user_invitations_accepted_user_consistency',
+            sql`accepted_user_id IS NULL OR accepted_at IS NOT NULL`,
+        ),
+        check(
+            'chk_user_invitations_role_fields',
+            sql`(
+                role = 'student'
+                AND student_number IS NOT NULL
+                AND group_id IS NOT NULL
+                AND org_unit_id IS NULL
+                AND position IS NULL
+                AND academic_degree IS NULL
+                AND academic_title IS NULL
+            ) OR (
+                role = 'supervisor'
+                AND org_unit_id IS NOT NULL
+                AND student_number IS NULL
+                AND group_id IS NULL
+            ) OR (
+                role = 'admin'
+                AND student_number IS NULL
+                AND group_id IS NULL
+                AND academic_degree IS NULL
+                AND academic_title IS NULL
+            )`,
+        ),
     ],
 );

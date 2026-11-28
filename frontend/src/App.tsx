@@ -12,6 +12,8 @@ import OrgStructurePage from './pages/OrgStructurePage';
 import SpecialtiesPage from './pages/SpecialtiesPage';
 import EducationalProgramsPage from './pages/EducationalProgramsPage';
 import GroupsPage from './pages/GroupsPage';
+import InvitationsPage from './pages/InvitationsPage';
+import AcceptInvitationPage from './pages/AcceptInvitationPage';
 import ForbiddenPage from './pages/ForbiddenPage';
 import NotFoundPage from './pages/NotFoundPage';
 import ProtectedRoute from './auth/ProtectedRoute';
@@ -24,6 +26,7 @@ export default function App() {
                 <Route path="login" element={<LoginPage />} />
                 <Route path="forgot-password" element={<ForgotPasswordPage />} />
                 <Route path="reset-password" element={<ResetPasswordPage />} />
+                <Route path="accept-invitation" element={<AcceptInvitationPage />} />
                 <Route path="confirm-email-change" element={<ConfirmEmailChangePage />} />
                 <Route path="revert-email-change" element={<RevertEmailChangePage />} />
                 <Route
@@ -45,6 +48,7 @@ export default function App() {
                         element={<EducationalProgramsPage />}
                     />
                     <Route path="admin/groups" element={<GroupsPage />} />
+                    <Route path="admin/invitations" element={<InvitationsPage />} />
                 </Route>
                 <Route path="*" element={<NotFoundPage />} />
             </Route>

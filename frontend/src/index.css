@@ -137,3 +137,35 @@
     overflow-wrap: break-word;
     line-height: 1.35;
 }
+
+.bulk-dropzone {
+    border: 2px dashed var(--bs-border-color);
+    background-color: var(--bs-tertiary-bg);
+    transition:
+        border-color 0.15s ease-in-out,
+        background-color 0.15s ease-in-out;
+}
+
+.bulk-dropzone-active {
+    border-color: var(--bs-primary);
+    background-color: var(--bs-primary-bg-subtle);
+}
+
+.bulk-grid-table input,
+.bulk-grid-table select {
+    min-width: 120px;
+}
+
+.bulk-status-cell {
+    min-width: 190px;
+    max-width: 280px;
+    overflow-wrap: break-word;
+}
+
+.table-success-subtle {
+    --bs-table-bg: var(--bs-success-bg-subtle);
+}
+
+.table-danger-subtle {
+    --bs-table-bg: var(--bs-danger-bg-subtle);
+}

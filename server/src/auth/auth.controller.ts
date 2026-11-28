@@ -25,15 +25,14 @@ import { ChangePasswordDto } from './dto/change-password.dto.js';
 import { RequestEmailChangeDto } from './dto/request-email-change.dto.js';
 import { TokenActionDto } from './dto/token-action.dto.js';
 import { Auth } from './decorators/auth.decorator.js';
-import ms from 'ms';
 import { AppConfigService } from '../config/app-config.service.js';
-import { API_PREFIX } from '../config/api.constants.js';
+import {
+  clearAuthCookies,
+  REFRESH_COOKIE,
+  setAuthCookies,
+} from './auth-cookies.util.js';
 
 type AuthenticatedRequest = Request & { user: JwtPayload };
-
-const ACCESS_COOKIE = 'access_token';
-const REFRESH_COOKIE = 'refresh_token';
-const REFRESH_PATH = `/${API_PREFIX}/auth/refresh`;
 
 @Controller('auth')
 export class AuthController {
@@ -43,30 +42,11 @@ export class AuthController {
   ) {}
 
   private setAuthCookies(res: Response, tokens: TokenPair) {
-    const isProd = this.config.get('NODE_ENV') === 'production';
-
-    const accessMaxAge = ms(this.config.get('JWT_ACCESS_EXPIRES_IN'));
-    const refreshMaxAge = ms(this.config.get('REFRESH_TOKEN_EXPIRES_IN'));
-
-    res.cookie(ACCESS_COOKIE, tokens.accessToken, {
-      httpOnly: true,
-      secure: isProd,
-      sameSite: 'strict',
-      path: '/',
-      maxAge: accessMaxAge,
-    });
-    res.cookie(REFRESH_COOKIE, tokens.refreshToken, {
-      httpOnly: true,
-      secure: isProd,
-      sameSite: 'strict',
-      path: REFRESH_PATH,
-      maxAge: refreshMaxAge,
-    });
+    setAuthCookies(res, tokens, this.config);
   }
 
   private clearAuthCookies(res: Response) {
-    res.clearCookie(ACCESS_COOKIE, { path: '/' });
-    res.clearCookie(REFRESH_COOKIE, { path: REFRESH_PATH });
+    clearAuthCookies(res);
   }
 
   @UseGuards(ThrottlerGuard)

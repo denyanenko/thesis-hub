@@ -37,11 +37,19 @@ export class EnvironmentVariablesValidator {
   @IsString()
   JWT_RESET_SECRET: string;
 
+  // Окремий секрет для токенів запрошення користувачів (якщо не задано — формується похідний від JWT_RESET_SECRET)
+  @IsOptional()
+  @IsString()
+  JWT_INVITE_SECRET?: string;
+
   @IsStringValue()
   JWT_ACCESS_EXPIRES_IN: StringValue = '15m';
 
   @IsStringValue()
   REFRESH_TOKEN_EXPIRES_IN: StringValue = '30d';
+
+  @IsStringValue()
+  INVITATION_EXPIRES_IN: StringValue = '7d';
 
   // SMTP (для Gmail: smtp.gmail.com:465 + пароль застосунку)
   @IsString()

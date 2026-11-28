@@ -137,3 +137,68 @@ export function emailChangeRevertedTemplate(): MailTemplate {
     `,
   };
 }
+
+function escapeHtml(value: string): string {
+  return value
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;');
+}
+
+export interface UserInvitationTemplateParams {
+  firstName: string;
+  lastName: string;
+  patronymic?: string | null;
+  roleLabel: string;
+  contextLabel?: string | null;
+  link: string;
+  expiresAtLabel: string;
+}
+
+export function userInvitationTemplate(
+  params: UserInvitationTemplateParams,
+): MailTemplate {
+  const fullName = [params.lastName, params.firstName, params.patronymic]
+    .filter((part): part is string => Boolean(part && part.trim()))
+    .join(' ');
+
+  const safeFullName = escapeHtml(fullName);
+  const safeRole = escapeHtml(params.roleLabel);
+  const safeContext = params.contextLabel
+    ? escapeHtml(params.contextLabel)
+    : null;
+  const safeExpires = escapeHtml(params.expiresAtLabel);
+
+  const contextTextLine = params.contextLabel
+    ? `Підрозділ / група: ${params.contextLabel}.`
+    : null;
+  const contextHtmlLine = safeContext
+    ? `<p><strong>Підрозділ / група:</strong> ${safeContext}</p>`
+    : '';
+
+  return {
+    subject: `Запрошення до системи ${APP_NAME}`,
+    text: [
+      `Вітаємо, ${fullName}!`,
+      '',
+      `Вас запрошено до інформаційної системи ${APP_NAME} з роллю «${params.roleLabel}».`,
+      ...(contextTextLine ? [contextTextLine] : []),
+      '',
+      'Щоб активувати акаунт і встановити пароль, перейдіть за посиланням:',
+      params.link,
+      '',
+      `Посилання дійсне до ${params.expiresAtLabel}.`,
+      'Якщо ви отримали цей лист помилково, просто проігноруйте його.',
+    ].join('\n'),
+    html: `
+      <p>Вітаємо, <strong>${safeFullName}</strong>!</p>
+      <p>Вас запрошено до інформаційної системи <strong>${APP_NAME}</strong> з роллю <strong>«${safeRole}»</strong>.</p>
+      ${contextHtmlLine}
+      <p>Щоб активувати акаунт і встановити пароль, <a href="${params.link}">перейдіть за посиланням</a>.</p>
+      <p>Посилання дійсне до <strong>${safeExpires}</strong>.</p>
+      <p style="color:#6c757d;font-size:0.9em;">Якщо ви отримали цей лист помилково, просто проігноруйте його.</p>
+    `,
+  };
+}

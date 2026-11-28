@@ -18,6 +18,7 @@ thesis-hub/
 │   │   ├── database/               # Drizzle schema.ts, relations.ts, migrate.ts, check-schema.ts, сіди
 │   │   ├── educational-programs/   # Освітні програми (CRUD, scope кафедр, заміна/перейменування)
 │   │   ├── groups/                 # Академічні групи (CRUD, архівування/випуск, scope кафедр)
+│   │   ├── invitations/            # Запрошення користувачів (одиночні та масові, .xlsx/.csv шаблони й імпорт, активація акаунтів)
 │   │   ├── mail/                   # Nodemailer + шаблони листів
 │   │   ├── org-units/              # Дерево оргструктури, OrgScopeService, правила ієрархії
 │   │   ├── profile/                # Профіль поточного користувача

@@ -14,6 +14,8 @@ import {
   emailChangeRevertedTemplate,
   passwordChangedTemplate,
   resetPasswordTemplate,
+  userInvitationTemplate,
+  type UserInvitationTemplateParams,
 } from './mail.templates.js';
 
 export interface SendMailOptions {
@@ -98,5 +100,13 @@ export class MailService implements OnModuleInit {
   /** Сповіщення на нову адресу, якщо зміну пошти було скасовано зі старої скриньки. */
   async sendEmailChangeRevertedEmail(to: string): Promise<void> {
     await this.send({ to, ...emailChangeRevertedTemplate() });
+  }
+
+  /** Лист-запрошення новому користувачу з посиланням для активації акаунта та задання пароля. */
+  async sendUserInvitationEmail(
+    to: string,
+    params: UserInvitationTemplateParams,
+  ): Promise<void> {
+    await this.send({ to, ...userInvitationTemplate(params) });
   }
 }

@@ -10,6 +10,7 @@ import {
   admins,
   refreshTokens,
   orgUnitAllowedChildren,
+  userInvitations,
 } from './schema.js';
 
 export const orgUnitsRelations = relations(orgUnits, ({ one, many }) => ({
@@ -33,6 +34,7 @@ export const orgUnitsRelations = relations(orgUnits, ({ one, many }) => ({
   supervisors: many(supervisors),
   admins: many(admins),
   orgUnitAllowedChildren: many(orgUnitAllowedChildren),
+  userInvitations: many(userInvitations),
 }));
 
 export const educationalProgramsRelations = relations(
@@ -76,6 +78,7 @@ export const groupsRelations = relations(groups, ({ one, many }) => ({
     references: [educationalPrograms.id],
   }),
   students: many(students),
+  userInvitations: many(userInvitations),
 }));
 
 export const studentsRelations = relations(students, ({ one }) => ({
@@ -94,6 +97,12 @@ export const usersRelations = relations(users, ({ one, many }) => ({
   supervisor: one(supervisors),
   admin: one(admins),
   refreshTokens: many(refreshTokens),
+  sentInvitations: many(userInvitations, {
+    relationName: 'userInvitations_invitedByUserId_users_id',
+  }),
+  acceptedInvitations: many(userInvitations, {
+    relationName: 'userInvitations_acceptedUserId_users_id',
+  }),
 }));
 
 export const supervisorsRelations = relations(supervisors, ({ one }) => ({
@@ -142,6 +151,30 @@ export const orgUnitAllowedChildrenRelations = relations(
     orgUnit: one(orgUnits, {
       fields: [orgUnitAllowedChildren.orgUnitId],
       references: [orgUnits.id],
+    }),
+  }),
+);
+
+export const userInvitationsRelations = relations(
+  userInvitations,
+  ({ one }) => ({
+    group: one(groups, {
+      fields: [userInvitations.groupId],
+      references: [groups.id],
+    }),
+    orgUnit: one(orgUnits, {
+      fields: [userInvitations.orgUnitId],
+      references: [orgUnits.id],
+    }),
+    invitedBy: one(users, {
+      fields: [userInvitations.invitedByUserId],
+      references: [users.id],
+      relationName: 'userInvitations_invitedByUserId_users_id',
+    }),
+    acceptedUser: one(users, {
+      fields: [userInvitations.acceptedUserId],
+      references: [users.id],
+      relationName: 'userInvitations_acceptedUserId_users_id',
     }),
   }),
 );
