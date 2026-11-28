@@ -36,6 +36,7 @@
     "seed:dev:supervisors": "nest build && node dist/database/seed-dev-supervisors.js",
     "seed:dev:users": "nest build && node dist/database/seed-dev-admins.js && node dist/database/seed-dev-supervisors.js",
     "seed:dev:programs": "nest build && node dist/database/seed-dev-programs.js",
+    "seed:dev:groups": "nest build && node dist/database/seed-dev-groups.js",
     "seed:dev:cleanup": "nest build && node dist/database/seed-dev-cleanup.js"
   },
   "dependencies": {

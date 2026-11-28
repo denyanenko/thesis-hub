@@ -25,6 +25,7 @@ import {
     type ProgramDepartmentRef,
     type ProgramSpecialtyRef,
 } from '../api/educationalPrograms';
+import { GROUPS_KEY } from '../api/groups';
 import { ORG_TREE_KEY, fetchOrgUnitsTree, type OrgUnitTreeItem } from '../api/orgUnits';
 import { SPECIALTIES_KEY } from '../api/specialties';
 import EducationalProgramFormModal from '../components/educational-programs/EducationalProgramFormModal';
@@ -368,6 +369,7 @@ export default function EducationalProgramsPage() {
     const invalidateRelatedQueries = async () => {
         await Promise.all([
             queryClient.invalidateQueries({ queryKey: EDUCATIONAL_PROGRAMS_KEY }),
+            queryClient.invalidateQueries({ queryKey: GROUPS_KEY }),
             queryClient.invalidateQueries({ queryKey: ORG_TREE_KEY }),
             queryClient.invalidateQueries({ queryKey: SPECIALTIES_KEY }),
         ]);
@@ -434,6 +436,43 @@ export default function EducationalProgramsPage() {
             {p.specialty.code}
         </Link>
     );
+
+    const renderGroupsCountLink = (p: EducationalProgramItem, compact = false) => {
+        const activeCount = p.counts.activeGroups;
+        const to = `/admin/groups?programId=${p.id}`;
+        const title =
+            activeCount > 0
+                ? `Перейти до активних груп освітньої програми (${activeCount})`
+                : 'Перейти до груп освітньої програми (поки немає активних)';
+
+        if (activeCount === 0 && !p.isActive) {
+            return (
+                <span className="small text-muted text-nowrap" title="Активних груп немає">
+                    {compact ? 'Груп: 0' : '0'}
+                </span>
+            );
+        }
+
+        return (
+            <Link
+                to={to}
+                className={`small entity-link text-nowrap ${
+                    activeCount > 0 ? 'text-primary' : 'text-muted'
+                }`}
+                title={title}
+            >
+                {compact && 'Груп: '}
+                {activeCount > 0 ? <strong>{activeCount}</strong> : <span>0</span>}
+                {activeCount > 0 && (
+                    <i
+                        className="bi bi-arrow-up-right ms-1"
+                        style={{ fontSize: '0.65rem' }}
+                        aria-hidden="true"
+                    />
+                )}
+            </Link>
+        );
+    };
 
     const renderSuccessionMeta = (p: EducationalProgramItem) => {
         const deactivatedDate = formatDateUk(p.deactivatedAt);
@@ -963,22 +1002,7 @@ export default function EducationalProgramsPage() {
                                             </td>
                                             <td>{renderStatusBadge(p)}</td>
                                             <td className="text-center">
-                                                <span
-                                                    className="small"
-                                                    title={`Активних груп: ${p.counts.activeGroups}, усього груп: ${p.counts.groups}`}
-                                                >
-                                                    {p.counts.groups === 0 ? (
-                                                        <span className="text-muted">0</span>
-                                                    ) : (
-                                                        <>
-                                                            <strong>{p.counts.activeGroups}</strong>
-                                                            <span className="text-muted">
-                                                                {' '}
-                                                                / {p.counts.groups}
-                                                            </span>
-                                                        </>
-                                                    )}
-                                                </span>
+                                                {renderGroupsCountLink(p, false)}
                                             </td>
                                             <td className="text-end">{renderActions(p)}</td>
                                         </tr>
@@ -1000,9 +1024,7 @@ export default function EducationalProgramsPage() {
                                             {renderDegreeBadge(p.degreeLevel)}
                                             {renderStatusBadge(p)}
                                         </div>
-                                        <span className="small text-muted text-nowrap">
-                                            Груп: {p.counts.activeGroups}/{p.counts.groups}
-                                        </span>
+                                        {renderGroupsCountLink(p, true)}
                                     </div>
 
                                     <div
@@ -1049,7 +1071,7 @@ export default function EducationalProgramsPage() {
                         Показано: <strong>{filteredPrograms.length}</strong> з{' '}
                         <strong>{programs.length}</strong>
                     </span>
-                    <span>Групи — кількість активних / усіх груп освітньої програми</span>
+                    <span>Групи — кількість активних академічних груп освітньої програми</span>
                 </Card.Footer>
             </Card>
 

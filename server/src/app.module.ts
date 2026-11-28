@@ -10,6 +10,7 @@ import { ProfileModule } from './profile/profile.module.js';
 import { OrgUnitsModule } from './org-units/org-units.module.js';
 import { SpecialtiesModule } from './specialties/specialties.module.js';
 import { EducationalProgramsModule } from './educational-programs/educational-programs.module.js';
+import { GroupsModule } from './groups/groups.module.js';
 
 @Module({
   imports: [
@@ -51,6 +52,7 @@ import { EducationalProgramsModule } from './educational-programs/educational-pr
     OrgUnitsModule,
     SpecialtiesModule,
     EducationalProgramsModule,
+    GroupsModule,
     MailModule,
   ],
   controllers: [AppController],

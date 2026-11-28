@@ -11,6 +11,7 @@ import ProfilePage from './pages/ProfilePage';
 import OrgStructurePage from './pages/OrgStructurePage';
 import SpecialtiesPage from './pages/SpecialtiesPage';
 import EducationalProgramsPage from './pages/EducationalProgramsPage';
+import GroupsPage from './pages/GroupsPage';
 import ForbiddenPage from './pages/ForbiddenPage';
 import NotFoundPage from './pages/NotFoundPage';
 import ProtectedRoute from './auth/ProtectedRoute';
@@ -43,6 +44,7 @@ export default function App() {
                         path="admin/educational-programs"
                         element={<EducationalProgramsPage />}
                     />
+                    <Route path="admin/groups" element={<GroupsPage />} />
                 </Route>
                 <Route path="*" element={<NotFoundPage />} />
             </Route>

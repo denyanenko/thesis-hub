@@ -91,9 +91,59 @@ export default function OrgUnitDetailsPanel({
             ? allUnits.find((u) => u.id === unit.parentId) ?? null
             : null;
 
+    const showChildrenTile =
+        globalAllowedTypes.length > 0 ||
+        unit.effectiveAllowedChildTypes.length > 0 ||
+        unit.counts.children > 0;
+
+    const subtreeStats = useMemo(() => {
+        if (unit.unitType === 'department') {
+            return {
+                activePrograms: unit.counts.activePrograms,
+                supervisors: unit.counts.supervisors,
+                descendantDepartments: 0,
+            };
+        }
+
+        const childrenByParent = new Map<number, OrgUnitTreeItem[]>();
+        for (const u of allUnits) {
+            if (u.parentId !== null) {
+                const list = childrenByParent.get(u.parentId) ?? [];
+                list.push(u);
+                childrenByParent.set(u.parentId, list);
+            }
+        }
+
+        let activePrograms = unit.inScope ? unit.counts.activePrograms : 0;
+        let supervisors = unit.inScope ? unit.counts.supervisors : 0;
+        let descendantDepartments = 0;
+
+        const queue: number[] = [unit.id];
+        const visited = new Set<number>([unit.id]);
+
+        while (queue.length > 0) {
+            const currentId = queue.shift()!;
+            const children = childrenByParent.get(currentId) ?? [];
+            for (const child of children) {
+                if (visited.has(child.id)) continue;
+                visited.add(child.id);
+                if (child.inScope) {
+                    supervisors += child.counts.supervisors;
+                    if (child.unitType === 'department') {
+                        descendantDepartments += 1;
+                        activePrograms += child.counts.activePrograms;
+                    }
+                }
+                queue.push(child.id);
+            }
+        }
+
+        return { activePrograms, supervisors, descendantDepartments };
+    }, [allUnits, unit]);
+
     const programsTile = useMemo(() => {
         if (unit.unitType === 'department') {
-            const count = unit.counts.activePrograms;
+            const count = subtreeStats.activePrograms;
             const to = unit.inScope
                 ? `/admin/educational-programs?departmentId=${unit.id}`
                 : null;
@@ -108,47 +158,19 @@ export default function OrgUnitDetailsPanel({
             };
         }
 
-        const childrenByParent = new Map<number, OrgUnitTreeItem[]>();
-        for (const u of allUnits) {
-            if (u.parentId !== null) {
-                const list = childrenByParent.get(u.parentId) ?? [];
-                list.push(u);
-                childrenByParent.set(u.parentId, list);
-            }
-        }
-
-        let subtreePrograms = unit.counts.activePrograms;
-        let descendantDepartments = 0;
-        const queue: number[] = [unit.id];
-        const visited = new Set<number>([unit.id]);
-
-        while (queue.length > 0) {
-            const currentId = queue.shift()!;
-            const children = childrenByParent.get(currentId) ?? [];
-            for (const child of children) {
-                if (visited.has(child.id)) continue;
-                visited.add(child.id);
-                if (child.unitType === 'department' && child.inScope) {
-                    descendantDepartments += 1;
-                    subtreePrograms += child.counts.activePrograms;
-                }
-                queue.push(child.id);
-            }
-        }
-
         const to =
-            unit.inScope && descendantDepartments > 0
+            unit.inScope && subtreeStats.descendantDepartments > 0
                 ? `/admin/educational-programs?unitId=${unit.id}`
                 : null;
 
         return {
-            count: subtreePrograms,
+            count: subtreeStats.activePrograms,
             to,
             title: to
-                ? `Перейти до активних освітніх програм підпорядкованих кафедр (${subtreePrograms})`
+                ? `Перейти до активних освітніх програм підпорядкованих кафедр (${subtreeStats.activePrograms})`
                 : 'Освітні програми привʼязуються до кафедр',
         };
-    }, [allUnits, unit]);
+    }, [subtreeStats, unit]);
 
     const rulesDirty = useMemo(() => {
         if (useGlobal) return unit.allowedChildTypes !== null;
@@ -273,15 +295,17 @@ export default function OrgUnitDetailsPanel({
                     </div>
 
                     <Row className="g-2 mb-3">
-                        <Col xs={6} sm={3}>
-                            <div className="border rounded p-2 text-center bg-light h-100">
-                                <div className="fw-semibold">{unit.counts.children}</div>
-                                <div className="text-muted" style={{ fontSize: '0.75rem' }}>
-                                    Дочірні ({unit.counts.activeChildren} акт.)
+                        {showChildrenTile && (
+                            <Col xs={6} sm={3}>
+                                <div className="border rounded p-2 text-center bg-light h-100">
+                                    <div className="fw-semibold">{unit.counts.children}</div>
+                                    <div className="text-muted" style={{ fontSize: '0.75rem' }}>
+                                        Дочірні ({unit.counts.activeChildren} акт.)
+                                    </div>
                                 </div>
-                            </div>
-                        </Col>
-                        <Col xs={6} sm={3}>
+                            </Col>
+                        )}
+                        <Col xs={6} sm={showChildrenTile ? 3 : 4}>
                             {programsTile.to ? (
                                 <Link
                                     to={programsTile.to}
@@ -312,16 +336,26 @@ export default function OrgUnitDetailsPanel({
                                 </div>
                             )}
                         </Col>
-                        <Col xs={6} sm={3}>
-                            <div className="border rounded p-2 text-center bg-light h-100">
-                                <div className="fw-semibold">{unit.counts.supervisors}</div>
+                        <Col xs={6} sm={showChildrenTile ? 3 : 4}>
+                            <div
+                                className="border rounded p-2 text-center bg-light h-100"
+                                title={
+                                    unit.unitType === 'department'
+                                        ? 'Наукові керівники кафедри'
+                                        : 'Усі наукові керівники підпорядкованих підрозділів'
+                                }
+                            >
+                                <div className="fw-semibold">{subtreeStats.supervisors}</div>
                                 <div className="text-muted" style={{ fontSize: '0.75rem' }}>
                                     Керівники
                                 </div>
                             </div>
                         </Col>
-                        <Col xs={6} sm={3}>
-                            <div className="border rounded p-2 text-center bg-light h-100">
+                        <Col xs={showChildrenTile ? 6 : 12} sm={showChildrenTile ? 3 : 4}>
+                            <div
+                                className="border rounded p-2 text-center bg-light h-100"
+                                title="Адміністратори цього підрозділу"
+                            >
                                 <div className="fw-semibold">{unit.counts.admins}</div>
                                 <div className="text-muted" style={{ fontSize: '0.75rem' }}>
                                     Адміни

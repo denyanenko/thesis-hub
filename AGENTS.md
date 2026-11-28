@@ -17,6 +17,7 @@ thesis-hub/
 │   │   ├── config/                 # Валідація .env (AppConfigService, API_PREFIX = 'api')
 │   │   ├── database/               # Drizzle schema.ts, relations.ts, migrate.ts, check-schema.ts, сіди
 │   │   ├── educational-programs/   # Освітні програми (CRUD, scope кафедр, заміна/перейменування)
+│   │   ├── groups/                 # Академічні групи (CRUD, архівування/випуск, scope кафедр)
 │   │   ├── mail/                   # Nodemailer + шаблони листів
 │   │   ├── org-units/              # Дерево оргструктури, OrgScopeService, правила ієрархії
 │   │   ├── profile/                # Профіль поточного користувача
@@ -44,7 +45,7 @@ thesis-hub/
     - `pnpm build` — `nest build`;
     - `pnpm test` — `vitest run` (`pnpm test:e2e` для e2e);
     - `pnpm db:migrate` / `pnpm db:migrate:status` / `pnpm db:migrate:baseline` / `pnpm db:check` / `pnpm db:migrate:check`;
-    - `pnpm seed` (супер-адмін), `pnpm seed:kpi` (структура КПІ), `pnpm seed:specialties` (класифікатор спеціальностей МОН 2024), `pnpm seed:dev:admins`, `pnpm seed:dev:supervisors`, `pnpm seed:dev:users`, `pnpm seed:dev:programs`, `pnpm seed:dev:cleanup`.
+    - `pnpm seed` (супер-адмін), `pnpm seed:kpi` (структура КПІ), `pnpm seed:specialties` (класифікатор спеціальностей МОН 2024), `pnpm seed:dev:admins`, `pnpm seed:dev:supervisors`, `pnpm seed:dev:users`, `pnpm seed:dev:programs`, `pnpm seed:dev:groups`, `pnpm seed:dev:cleanup`.
   - `frontend/`:
     - `pnpm dev` — Vite dev-сервер;
     - `pnpm lint` — `eslint .`;
